@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사용 가이드 | Decision Stream</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans KR', sans-serif;
+            background: linear-gradient(135deg, #0b1020 0%, #1a2332 100%);
+            color: #e7ebff;
+            padding: 20px;
+            line-height: 1.8;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            padding: 40px 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .header p {
+            color: #aab3d6;
+            font-size: 16px;
+        }
+        .back-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            color: #fff;
+            text-decoration: none;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+        .back-btn:hover {
+            background: rgba(255,255,255,0.15);
+        }
+        .section {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .section-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #cdd6ff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .subtitle {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 20px 0 10px 0;
+            color: #b8c1ff;
+        }
+        .content {
+            color: #aab3d6;
+            font-size: 15px;
+        }
+        .example {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            margin: 15px 0;
+        }
+        .highlight {
+            color: #667eea;
+            font-weight: 600;
+        }
+        .green {
+            color: #52d27d;
+        }
+        .red {
+            color: #ff4d4d;
+        }
+        .yellow {
+            color: #ffb84d;
+        }
+        ul {
+            padding-left: 25px;
+            margin: 10px 0;
+        }
+        li {
+            margin: 8px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-btn">← 대시보드로 돌아가기</a>
+        
+        <div class="header">
+            <h1>📚 Decision Stream 사용 가이드</h1>
+            <p>주식 초보자를 위한 쉬운 설명서</p>
+        </div>
+
+        <!-- Market Regime -->
+        <div class="section">
+            <div class="section-title">
+                <span>📊</span>
+                <span>1. Market Regime (시장 상태)</span>
+            </div>
+            
+            <div class="subtitle">🤔 이게 뭔가요?</div>
+            <div class="content">
+                지금 시장에 돈이 <span class="highlight">주식으로 들어오는지</span>, 아니면 <span class="highlight">빠져나가는지</span>를 알려주는 신호등입니다.
+            </div>
+
+            <div class="subtitle">💡 쉽게 설명하면</div>
+            <div class="content">
+                <ul>
+                    <li><span class="green">Risk-On (공격 모드)</span>: 사람들이 돈을 벌 수 있다고 생각해서 주식을 사고 있어요. 이때가 투자하기 좋은 시기입니다.</li>
+                    <li><span class="red">Risk-Off (방어 모드)</span>: 사람들이 불안해서 주식을 팔고 현금이나 금으로 갈아타고 있어요. 이때는 조심해야 합니다.</li>
+                </ul>
+            </div>
+
+            <div class="subtitle">📈 어떻게 판단하나요?</div>
+            <div class="content">
+                <ul>
+                    <li><strong>주식 시장 흐름</strong>: 요즘 주가가 오르는 종목이 많은가?</li>
+                    <li><strong>거래량</strong>: 많은 사람들이 주식을 사고파는가?</li>
+                    <li><strong>큰 손들의 움직임</strong>: 기관(연기금, 증권사 등)이 주식을 사들이는가?</li>
+                </ul>
+                
+                <div class="example">
+                    <strong>예시:</strong> Risk Score가 <span class="green">72점</span>이면 → 시장에 돈이 들어오고 있으니 매수 기회를 찾아볼 만합니다.
+                </div>
+            </div>
+        </div>
+
+        <!-- Sector Heatmap -->
+        <div class="section">
+            <div class="section-title">
+                <span>🔥</span>
+                <span>2. Sector Heatmap (섹터 열기 지도)</span>
+            </div>
+            
+            <div class="subtitle">🤔 이게 뭔가요?</div>
+            <div class="content">
+                지금 <span class="highlight">어떤 업종</span>에 돈이 몰리고 있는지 보여주는 지도입니다.
+            </div>
+
+            <div class="subtitle">💡 쉽게 설명하면</div>
+            <div class="content">
+                주식 시장은 한꺼번에 모든 종목이 오르지 않아요. 어떤 때는 <span class="highlight">방산주</span>가 뜨고, 어떤 때는 <span class="highlight">반도체주</span>가 뜁니다.
+                <br><br>
+                마치 식당 거리에서 지금 어느 식당에 사람이 몰리는지 보는 것과 같아요.
+            </div>
+
+            <div class="subtitle">🎯 신호 의미</div>
+            <div class="content">
+                <ul>
+                    <li><span class="green">SURGE (급등)</span>: 이 업종에 돈이 펑펑 들어오고 있어요! 주목하세요.</li>
+                    <li><span class="yellow">NORMAL (평범)</span>: 그냥 평범하게 움직이고 있어요.</li>
+                    <li><span class="red">WARN (경고)</span>: 돈이 빠져나가고 있어요. 조심하세요.</li>
+                </ul>
+                
+                <div class="example">
+                    <strong>예시:</strong> "방산" 섹터가 <span class="green">SURGE</span> → 최근 국제 정세나 뉴스로 방산 관련주에 관심이 쏠리고 있다는 뜻입니다.
+                </div>
+            </div>
+        </div>
+
+        <!-- Stock Funnel -->
+        <div class="section">
+            <div class="section-title">
+                <span>🎯</span>
+                <span>3. Stock Funnel (종목 분류기)</span>
+            </div>
+            
+            <div class="subtitle">🤔 이게 뭔가요?</div>
+            <div class="content">
+                같은 업종 안에서도 <span class="highlight">먼저 오르는 종목</span>과 <span class="highlight">나중에 따라오는 종목</span>, 그리고 <span class="highlight">피해야 할 종목</span>을 구분해줍니다.
+            </div>
+
+            <div class="subtitle">💡 쉽게 설명하면</div>
+            <div class="content">
+                마치 마라톤에서 선두 그룹, 2등 그룹, 꼴찌 그룹을 나누는 것과 같아요.
+            </div>
+
+            <div class="subtitle">📊 종목 분류</div>
+            <div class="content">
+                <ul>
+                    <li><strong class="green">Leader (선도주)</strong>: 이미 가격이 크게 올라서 돌파에 성공한 종목이에요. 추세가 강해서 더 오를 가능성이 있습니다.</li>
+                    <li><strong class="yellow">Follower (추종주)</strong>: 아직 본격적으로 오르기 전이에요. 이제 막 준비하는 종목이라 <span class="highlight">매수 기회</span>가 될 수 있습니다.</li>
+                    <li><strong class="red">No-Go (회피주)</strong>: 기술적으로 문제가 있거나, 너무 과열되어서 피하는 게 좋은 종목이에요.</li>
+                </ul>
+                
+                <div class="example">
+                    <strong>초보자 팁:</strong> <span class="yellow">Follower</span>에 주목하세요! 아직 안 올랐지만 곧 오를 가능성이 있는 종목들이에요.
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart Analysis -->
+        <div class="section">
+            <div class="section-title">
+                <span>📈</span>
+                <span>4. 차트 분석 (기술적 분석)</span>
+            </div>
+            
+            <div class="subtitle">🤔 이게 뭔가요?</div>
+            <div class="content">
+                과거 주가 움직임을 보고 <span class="highlight">지금 사야 할지, 팔아야 할지</span>를 판단하는 도구입니다.
+            </div>
+
+            <div class="subtitle">📊 주요 지표 설명</div>
+            
+            <div class="content">
+                <strong>1) 이동평균선 (MA5, MA20, MA60)</strong>
+                <ul>
+                    <li>최근 5일, 20일, 60일 동안의 평균 가격을 선으로 그은 것이에요.</li>
+                    <li><span class="green">주가가 이 선 위에 있으면</span> → 상승 추세</li>
+                    <li><span class="red">주가가 이 선 아래에 있으면</span> → 하락 추세</li>
+                </ul>
+
+                <div class="example">
+                    <strong>쉬운 비유:</strong> 이동평균선은 "평균 성적"이에요. 최근 점수가 평균보다 높으면 성적이 올라가는 중이고, 낮으면 떨어지는 중이죠.
+                </div>
+
+                <strong>2) RSI (과열/침체 지표)</strong>
+                <ul>
+                    <li>주가가 너무 많이 올랐는지(과열), 너무 많이 떨어졌는지(침체)를 0~100 숫자로 보여줘요.</li>
+                    <li><span class="red">70 이상</span> → 너무 많이 올라서 곧 떨어질 수 있어요 (과열)</li>
+                    <li><span class="green">30 이하</span> → 너무 많이 떨어져서 곧 오를 수 있어요 (침체)</li>
+                    <li><span class="yellow">30~70</span> → 적당한 수준이에요 (중립)</li>
+                </ul>
+
+                <strong>3) MACD (매수/매도 신호)</strong>
+                <ul>
+                    <li>최근 추세가 <span class="highlight">강해지는지, 약해지는지</span>를 알려주는 신호등이에요.</li>
+                    <li>MACD는 <strong>두 개의 선</strong>으로 이루어져 있어요:
+                        <ul style="margin-top: 8px;">
+                            <li><strong>MACD선</strong>: 빠른 추세선</li>
+                            <li><strong>Signal선</strong>: 느린 추세선</li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <div class="example" style="margin: 15px 0;">
+                    <strong>📈 MACD 매수 신호란?</strong>
+                    <ul style="margin-top: 10px;">
+                        <li><span class="green">골든크로스 (Golden Cross)</span>: MACD선이 Signal선을 <strong>아래에서 위로</strong> 뚫고 올라갈 때
+                            <br>→ 상승 추세가 시작된다는 신호! 매수 타이밍이에요.
+                        </li>
+                        <li style="margin-top: 8px;"><span class="red">데드크로스 (Dead Cross)</span>: MACD선이 Signal선을 <strong>위에서 아래로</strong> 뚫고 내려갈 때
+                            <br>→ 하락 추세가 시작된다는 신호! 매도 타이밍이에요.
+                        </li>
+                    </ul>
+                    <br>
+                    <strong>🚦 쉬운 비유:</strong> 빨간 불(Signal선) 위로 파란 불(MACD선)이 올라가면 "출발!" 신호예요. 
+                    반대로 파란 불이 빨간 불 아래로 내려가면 "정지!" 신호입니다.
+                </div>
+
+                <strong>4) 지지선 / 저항선</strong>
+                <ul>
+                    <li><strong>지지선</strong>: 주가가 이 가격 아래로는 잘 안 떨어지는 바닥선이에요.</li>
+                    <li><strong>저항선</strong>: 주가가 이 가격 위로는 잘 안 올라가는 천장선이에요.</li>
+                </ul>
+
+                <div class="example">
+                    <strong>예시:</strong>
+                    <ul>
+                        <li>RSI: <span class="yellow">55</span> (중립) → 적당한 수준, 안전</li>
+                        <li>MACD: <span class="green">매수</span> → 상승 추세 시작 신호</li>
+                        <li>단기 추세: <span class="green">상승</span> → 최근 오르고 있음</li>
+                        <li>종합 판단: <span class="green">✅ 매수 고려 가능</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 사용 흐름 -->
+        <div class="section">
+            <div class="section-title">
+                <span>🔄</span>
+                <span>전체 사용 흐름</span>
+            </div>
+            
+            <div class="content">
+                <ol>
+                    <li><strong>Market Regime 확인</strong>: 지금 시장이 <span class="green">Risk-On</span>인지 확인하세요.</li>
+                    <li><strong>Sector Heatmap 보기</strong>: <span class="green">SURGE</span> 신호가 뜬 업종을 찾으세요.</li>
+                    <li><strong>Stock Funnel 활용</strong>: 그 업종에서 <span class="yellow">Follower</span> 종목을 선택하세요.</li>
+                    <li><strong>차트 분석</strong>: 선택한 종목의 차트를 보고 매수 타이밍을 잡으세요.</li>
+                    <li><strong>매매 계획 수립</strong>: 진입가, 손절가, 목표가를 정하세요.</li>
+                </ol>
+
+                <div class="example">
+                    <strong>💡 초보자 체크리스트</strong>
+                    <ul>
+                        <li>✅ Market Regime이 <span class="green">Risk-On</span>인가?</li>
+                        <li>✅ 관심 섹터가 <span class="green">SURGE</span> 신호인가?</li>
+                        <li>✅ 선택한 종목이 <span class="yellow">Follower</span>인가?</li>
+                        <li>✅ RSI가 <span class="red">70 이상 과열</span> 상태가 아닌가?</li>
+                        <li>✅ MACD가 <span class="green">매수 신호</span>를 주는가?</li>
+                    </ul>
+                    <br>
+                    이 5가지가 모두 ✅라면 매수를 고려해볼 만합니다!
+                </div>
+            </div>
+        </div>
+
+        <!-- 주의사항 -->
+        <div class="section" style="background: rgba(255,77,77,0.1); border: 1px solid rgba(255,77,77,0.3);">
+            <div class="section-title">
+                <span>⚠️</span>
+                <span>반드시 기억하세요!</span>
+            </div>
+            <div class="content">
+                <ul>
+                    <li>이 도구는 <strong>참고용</strong>입니다. 100% 맞는 것은 아니에요.</li>
+                    <li>투자는 <strong>본인 판단과 책임</strong>으로 하세요.</li>
+                    <li>손실을 감당할 수 있는 <strong>여유 자금</strong>으로만 투자하세요.</li>
+                    <li>한 종목에 <strong>전 재산</strong>을 걸지 마세요.</li>
+                    <li>매수했다면 반드시 <strong>손절가</strong>를 정해두세요.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 40px; padding: 20px; color: #aab3d6;">
+            <p>더 궁금한 점이 있으시면 대시보드에서 직접 사용해보세요!</p>
+            <a href="index.html" class="back-btn" style="margin-top: 20px;">← 대시보드로 돌아가기</a>
+        </div>
+    </div>
+</body>
+</html>

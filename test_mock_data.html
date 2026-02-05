@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mock Data Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #0f1419;
+            color: #e8eaed;
+            padding: 20px;
+        }
+        .test-box {
+            background: #1a2332;
+            border: 1px solid #667eea;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+        .success { border-color: #48bb78; }
+        .error { border-color: #f56565; }
+        button {
+            padding: 8px 16px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-right: 8px;
+        }
+        button:hover { background: #764ba2; }
+        pre {
+            background: #000;
+            padding: 12px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Mock Data Test</h1>
+    
+    <div class="test-box">
+        <h3>Configuration</h3>
+        <pre id="config"></pre>
+    </div>
+    
+    <div class="test-box">
+        <h3>Test Controls</h3>
+        <button onclick="testRegime()">Test Regime</button>
+        <button onclick="testSectors()">Test Sectors</button>
+        <button onclick="testFunnel()">Test Funnel</button>
+        <button onclick="testAll()">Test All</button>
+        <button onclick="clearResults()">Clear</button>
+    </div>
+    
+    <div id="results"></div>
+    
+    <script>
+        // Mock 데이터
+        const MOCK_DATA = {
+            regime: {
+                state: 'RISK_ON',
+                risk_score: 72,
+                playbook: '눌림 매수',
+                volatility: '안정',
+                flow: '대형주 유입'
+            },
+            sectors: [
+                { sector: '방산', flow_score: 97, flow_signal: 'SURGE', duration: '2주 지속' },
+                { sector: '헬스케어', flow_score: 96, flow_signal: 'SURGE', duration: '1주 지속' },
+                { sector: 'AI 반도체', flow_score: 46, flow_signal: 'NORMAL', duration: '-' }
+            ],
+            funnels: {
+                '방산': {
+                    leader: [],
+                    follower: [
+                        { ticker: 'LMT', name: 'Lockheed Martin', price: 445.50 },
+                        { ticker: '012450', name: '한화에어로스페이스', price: 185000 }
+                    ],
+                    nogo: []
+                }
+            }
+        };
+        
+        // 설정 표시
+        document.getElementById('config').textContent = JSON.stringify({
+            USE_MOCK_DATA: true,
+            hostname: window.location.hostname,
+            MOCK_DATA_AVAILABLE: !!MOCK_DATA
+        }, null, 2);
+        
+        function addResult(title, data, success = true) {
+            const div = document.createElement('div');
+            div.className = `test-box ${success ? 'success' : 'error'}`;
+            div.innerHTML = `
+                <h3>${success ? '✅' : '❌'} ${title}</h3>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+            document.getElementById('results').appendChild(div);
+        }
+        
+        function testRegime() {
+            try {
+                const data = MOCK_DATA.regime;
+                addResult('Regime Data', data, true);
+            } catch (error) {
+                addResult('Regime Data', { error: error.message }, false);
+            }
+        }
+        
+        function testSectors() {
+            try {
+                const data = MOCK_DATA.sectors;
+                addResult('Sectors Data', data, true);
+            } catch (error) {
+                addResult('Sectors Data', { error: error.message }, false);
+            }
+        }
+        
+        function testFunnel() {
+            try {
+                const data = MOCK_DATA.funnels['방산'];
+                addResult('Funnel Data (방산)', data, true);
+            } catch (error) {
+                addResult('Funnel Data', { error: error.message }, false);
+            }
+        }
+        
+        function testAll() {
+            clearResults();
+            testRegime();
+            testSectors();
+            testFunnel();
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        // 자동 테스트 실행
+        console.log('🚀 Auto-running tests...');
+        testAll();
+    </script>
+</body>
+</html>

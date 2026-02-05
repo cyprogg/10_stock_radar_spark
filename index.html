@@ -1,0 +1,2122 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Decision Stream - 중기 스윙 투자 시스템</title>
+
+<style>
+:root{
+  --bg:#0b1020; --panel:#12183a; --card:#151c45;
+  --line:#24306a; --text:#e7ebff; --muted:#aab3d6;
+  --ok:#52d27d; --warn:#ffb84d; --err:#ff4d4d; --accent:#4a90e2;
+  --radius:14px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin:0; background:var(--bg); color:var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;
+}
+
+header {
+  padding:16px 24px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; justify-content:space-between;
+}
+
+header h1 {
+  font-size:20px; margin:0; font-weight:900;
+}
+
+.header-right {
+  display:flex; gap:12px; align-items:center;
+}
+
+.pill {
+  padding:6px 12px; border-radius:999px;
+  background:#0f1730; color:var(--muted);
+  font-size:12px; font-weight:600;
+}
+
+.pill.plan-free { background:#1a3a1a; color:#52d27d; }
+.pill.plan-pro { background:#3a2a1a; color:#ffb84d; }
+.pill.plan-elite { background:#3a1a2a; color:#ff4d4d; }
+
+.container {
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap:16px;
+  padding:16px;
+  max-width:1800px;
+  margin:0 auto;
+}
+
+.card {
+  background:linear-gradient(180deg, #141b45 0%, var(--card) 100%);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:16px;
+  min-height:220px;
+}
+
+.card h3 {
+  margin:0 0 12px 0;
+  font-size:15px;
+  color:#cdd6ff;
+}
+
+.small {
+  font-size:12px;
+  color:var(--muted);
+}
+
+.row {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+
+.badge {
+  padding:4px 10px;
+  border-radius:8px;
+  font-size:11px;
+  font-weight:700;
+}
+
+.badge.ok { background:#153f2a; color:var(--ok); }
+.badge.warn { background:#3f2e15; color:var(--warn); }
+.badge.err { background:#3f1515; color:var(--err); }
+
+.list {
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.item {
+  padding:10px;
+  border-radius:10px;
+  border:1px solid var(--line);
+  background:#10174a;
+  cursor:pointer;
+  transition: all 0.2s;
+}
+
+.item:hover {
+  border-color:#3a49a5;
+  background:#1a2460;
+}
+
+.item.disabled {
+  opacity:.4;
+  cursor:not-allowed;
+}
+
+.item.disabled:hover {
+  border-color:var(--line);
+  background:#10174a;
+}
+
+.kv {
+  display:flex;
+  justify-content:space-between;
+  font-size:13px;
+  margin:6px 0;
+}
+
+.sep {
+  height:1px;
+  background:var(--line);
+  margin:12px 0;
+}
+
+button {
+  padding:10px 14px;
+  border-radius:10px;
+  border:1px solid #2e3a7a;
+  background:#1a2460;
+  color:#fff;
+  cursor:pointer;
+  font-weight:700;
+  font-size:13px;
+  width:100%;
+  transition: all 0.2s;
+}
+
+button:hover {
+  background:#2a3470;
+}
+
+button:disabled {
+  opacity:.5;
+  cursor:not-allowed;
+}
+
+button.secondary {
+  background:#12183a;
+  border-color:#1e2550;
+}
+
+button.danger {
+  background:#5a1d2a;
+  border-color:#7a2e3a;
+}
+
+.state-badge {
+  display: inline-block;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 15px;
+}
+
+.state-buy-now { background: rgba(74,144,226,0.2); color: #4A90E2; border: 2px solid #4A90E2; }
+.state-buy-pullback { background: rgba(82,210,125,0.2); color: #52D27D; border: 2px solid #52D27D; }
+.state-accumulate { background: rgba(255,184,77,0.2); color: #FFB84D; border: 2px solid #FFB84D; }
+.state-watch { background: rgba(170,179,214,0.2); color: #AAB3D6; border: 2px solid #AAB3D6; }
+.state-hold-off { background: rgba(255,154,102,0.2); color: #FF9A66; border: 2px solid #FF9A66; }
+.state-no-go { background: rgba(255,77,77,0.2); color: #FF4D4D; border: 2px solid #FF4D4D; }
+
+.checklist-grid {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 8px;
+  border-left: 3px solid transparent;
+}
+
+.check-item.pass {
+  border-left-color: #52D27D;
+}
+
+.check-item.fail {
+  border-left-color: #FF4D4D;
+}
+
+.check-icon {
+  font-size: 18px;
+}
+
+.check-text {
+  flex: 1;
+  font-size: 13px;
+  color: #cdd6ff;
+}
+
+input, select {
+  width:100%;
+  padding:10px;
+  border-radius:8px;
+  border:1px solid #2e3a7a;
+  background:#0f1730;
+  color:#fff;
+  font-size:13px;
+}
+
+.plan-input {
+  cursor: pointer;
+}
+
+.plan-section {
+  background: rgba(255,255,255,0.03);
+  border-left: 3px solid var(--primary);
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
+.plan-section h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: var(--primary);
+}
+
+.plan-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.plan-row:last-child {
+  border-bottom: none;
+}
+
+.plan-label {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.plan-value {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.plan-value.bullish {
+  color: #4ade80;
+}
+
+.plan-value.bearish {
+  color: #ff4d4d;
+}
+
+.footer {
+  padding:16px 24px;
+  border-top:1px solid var(--line);
+  text-align:center;
+  color:var(--muted);
+  font-size:12px;
+}
+
+/* Why Drawer Styles */
+.drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+}
+
+.drawer-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+}
+
+.drawer-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 600px;
+  max-height: 85vh;
+  background: linear-gradient(135deg, #1a1f36 0%, #232842 100%);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -40%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+.drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.drawer-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #fff;
+}
+
+.close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+.drawer-body {
+  padding: 24px;
+  max-height: calc(85vh - 80px);
+  overflow-y: auto;
+}
+
+.drawer-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.drawer-body::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.drawer-body::-webkit-scrollbar-thumb {
+  background: rgba(102, 126, 234, 0.5);
+  border-radius: 4px;
+}
+
+.drawer-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(102, 126, 234, 0.7);
+}
+
+.score-summary {
+  text-align: center;
+  padding: 20px;
+  background: rgba(102, 126, 234, 0.1);
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.score-big {
+  font-size: 48px;
+  font-weight: 700;
+  color: #667eea;
+  margin-bottom: 8px;
+}
+
+.score-label {
+  font-size: 14px;
+  color: #aab3d6;
+}
+
+.section {
+  margin-bottom: 24px;
+}
+
+.section h4 {
+  font-size: 15px;
+  color: #fff;
+  margin: 0 0 12px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.section.devil h4 {
+  color: #ef4444;
+}
+
+.reason-item {
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+
+.reason-item.counter {
+  background: rgba(239, 68, 68, 0.1);
+  border-left: 3px solid #ef4444;
+}
+
+.reason-text {
+  font-size: 13px;
+  color: #e8eaed;
+  margin-bottom: 4px;
+}
+
+.reason-source {
+  font-size: 11px;
+  color: #aab3d6;
+}
+
+.reason-source a {
+  color: #667eea;
+  text-decoration: none;
+}
+
+.reason-source a:hover {
+  text-decoration: underline;
+}
+
+.confidence {
+  text-align: center;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  font-size: 14px;
+  color: #aab3d6;
+}
+
+.confidence span:last-child {
+  font-weight: 700;
+  color: #667eea;
+  margin-left: 8px;
+  font-size: 16px;
+}
+
+.hidden {
+  display:none;
+}
+
+.loading {
+  text-align:center;
+  padding:20px;
+  color:var(--muted);
+}
+
+@media (max-width: 1200px) {
+  .container {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    grid-template-columns: 1fr;
+  }
+  
+  header {
+    flex-direction:column;
+    gap:12px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>📊 Decision Stream v4.0</h1>
+  <div class="header-right">
+    <button onclick="window.open('youtube_script_generator.html', '_blank')" 
+            style="padding:8px 16px; background:#5a2a3a; color:#ff9a9e; border:1px solid #8a4a5a; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600;">
+      🎬 유튜브 대본
+    </button>
+    <button onclick="window.open('algorithm_structure.html', '_blank')" 
+            style="padding:8px 16px; background:#2a3a4a; color:#90cdf4; border:1px solid #4a6a7a; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600;">
+      🧮 알고리즘
+    </button>
+    <button onclick="window.open('news_filter.html', '_blank')" 
+            style="padding:8px 16px; background:#3a4a2a; color:#90ee90; border:1px solid #5a7a4a; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600;">
+      📰 뉴스 필터
+    </button>
+    <button onclick="window.open('user_guide.html', '_blank')" 
+            style="padding:8px 16px; background:#2a3a5a; color:#90cdf4; border:1px solid #4a6a9a; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600;">
+      📚 사용 가이드
+    </button>
+    <span class="pill">KR · US</span>
+    <span class="pill">중기 스윙</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- 1. Market Regime -->
+  <div class="card">
+    <h3>1) Market Regime</h3>
+    <div class="row">
+      <div class="small">시장 상태</div>
+      <span id="regime-badge" class="badge warn">로딩중</span>
+    </div>
+    <div class="sep"></div>
+    <div class="kv"><span>Risk Score</span><b id="risk-score">-</b></div>
+    <div class="kv"><span>Playbook</span><b id="playbook">-</b></div>
+    <div class="sep"></div>
+    <div class="small" style="color:var(--muted); font-size:11px; line-height:1.6; padding:8px; background:rgba(102,126,234,0.1); border-radius:6px; border-left:3px solid #667eea;">
+      💡 <b>Risk-On</b> = 사도 죽지 않을 확률이 높다 (매수 신호 아님)<br>
+      💡 <b>Risk-Off</b> = 진입 금지 (기존 포지션 손절 검토)
+    </div>
+    <div class="sep"></div>
+    <div id="regime-desc" class="small"></div>
+    <div class="sep"></div>
+    <div id="market-intelligence" class="small" style="line-height:1.8; padding:8px; background:rgba(255,255,255,0.03); border-radius:8px;">
+      <div class="loading">시장 분석 로딩중...</div>
+    </div>
+  </div>
+
+  <!-- 2. Sector Heatmap -->
+  <div class="card">
+    <h3>2) Sector Heatmap</h3>
+    <div class="small">SURGE 섹터만 클릭 가능</div>
+    <div class="sep"></div>
+    <div class="list" id="sector-list">
+      <div class="loading">데이터 로딩중...</div>
+    </div>
+    <div class="sep"></div>
+    <div id="sector-desc" class="small"></div>
+  </div>
+
+  <!-- 3. Stock Funnel -->
+  <div class="card">
+    <h3>3) Stock Funnel</h3>
+    <div id="funnel-status" class="small">섹터를 선택하세요</div>
+    <div class="sep"></div>
+    
+    <div class="small" style="font-weight:700;">Leader (선도주)</div>
+    <div class="list" id="leader">
+      <div class="small">-</div>
+    </div>
+    
+    <div class="sep"></div>
+    
+    <div class="small" style="font-weight:700;">Follower (추종주)</div>
+    <div class="list" id="follower">
+      <div class="small">-</div>
+    </div>
+    
+    <div class="sep"></div>
+    
+    <div class="small" style="font-weight:700; color:#ff4d4d;">
+      No-Go (회피) 
+      <span style="font-size:11px; color:var(--muted); font-weight:400;">💡 시스템 신뢰도 검증용</span>
+    </div>
+    <div class="list" id="nogo">
+      <div class="small">-</div>
+    </div>
+    
+    <div class="sep"></div>
+    <div id="funnel-desc" class="small"></div>
+  </div>
+
+  <!-- 4. Watch & Checklist -->
+  <div class="card">
+    <h3>4) Watch & Checklist</h3>
+    <div class="small" style="color:var(--muted); font-size:11px; line-height:1.6; padding:8px; background:rgba(255,77,77,0.1); border-radius:6px; border-left:3px solid #ff4d4d; margin-bottom:12px;">
+      ⚠️ "지금 사도 되는가" 아닌 <b>"사면 안 되는 이유가 있는가"</b>를 체크
+    </div>
+    <div id="checklist-status" class="small">종목을 선택하세요</div>
+    <div class="sep"></div>
+    <div id="checklist-result"></div>
+    
+    <!-- Devil's Advocate (반대 의견) -->
+    <div id="devils-advocate" style="display:none; margin-top:16px;">
+      <div class="sep"></div>
+      <div style="padding:12px; background:rgba(239,68,68,0.1); border-radius:8px; border-left:3px solid #ef4444;">
+        <div style="font-weight:700; font-size:13px; color:#ef4444; margin-bottom:8px;">😈 Devil's Advocate (반대 의견)</div>
+        <div id="counter-arguments" class="small" style="line-height:1.7;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Trade Plan Builder -->
+  <div class="card" id="trade-plan-card" style="display:none;">
+    <h3>5) 매매 계획 (Trade Plan)</h3>
+    <div class="small" style="color:var(--muted); font-size:11px; line-height:1.6; padding:8px; background:rgba(102,126,234,0.1); border-radius:6px; border-left:3px solid #667eea; margin-bottom:12px;">
+      💡 <b>손절 먼저 고정</b> → 진입/목표 계산 (리스크 관리 최우선)
+    </div>
+    
+    <!-- 사용자 입력 (최소화 - 2개만) -->
+    <div style="display:flex; gap:12px; margin-bottom:16px;">
+      <div style="flex:1;">
+        <div class="small" style="margin-bottom:4px; color:var(--muted);">투자기간</div>
+        <select id="plan-period" class="plan-input" onchange="updateTradePlan()">
+          <option value="단기">단기 (수일~2주)</option>
+          <option value="중기" selected>중기 (1~3개월)</option>
+        </select>
+      </div>
+      <div style="flex:1;">
+        <div class="small" style="margin-bottom:4px; color:var(--muted);">리스크 성향</div>
+        <select id="plan-risk" class="plan-input" onchange="updateTradePlan()">
+          <option value="보수">보수적</option>
+          <option value="중립" selected>중립</option>
+          <option value="공격">공격적</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="sep"></div>
+    
+    <!-- 계획 결과 -->
+    <div id="plan-result"></div>
+    
+    <div class="sep"></div>
+    
+    <!-- 상세 시뮬레이션 버튼 -->
+    <button onclick="openDetailedSimulation()" 
+            style="width:100%; padding:12px; background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:#fff; border:none; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:8px;">
+      📊 상세 시뮬레이션 열기
+      <span style="font-size:11px; opacity:0.8;">(trade_plan_simulation.html)</span>
+    </button>
+  </div>
+
+</div>
+
+<!-- Why Drawer Modal -->
+<div id="why-drawer" class="drawer" style="display:none;">
+  <div class="drawer-overlay" onclick="closeWhyDrawer()"></div>
+  <div class="drawer-content">
+    <div class="drawer-header">
+      <h3 id="drawer-title">🔍 Why Score: ?</h3>
+      <button onclick="closeWhyDrawer()" class="close-btn">✕</button>
+    </div>
+    
+    <div class="drawer-body">
+      <!-- 점수 요약 -->
+      <div class="score-summary">
+        <div class="score-big" id="drawer-score">-</div>
+        <div class="score-label" id="drawer-label">-</div>
+      </div>
+      
+      <!-- 지지 근거 -->
+      <div class="section">
+        <h4>✅ 이 점수를 지지하는 근거</h4>
+        <div id="supporting-reasons"></div>
+      </div>
+      
+      <!-- 반대 의견 -->
+      <div class="section devil">
+        <h4>😈 Devil's Advocate (반대 의견)</h4>
+        <div id="counter-reasons"></div>
+      </div>
+      
+      <!-- 신뢰도 -->
+      <div class="confidence">
+        <span>🎯 신뢰도:</span>
+        <span id="confidence-level">-</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <p>투자 판단 보조 도구입니다. 매수·매도 권유 및 수익 보장을 하지 않습니다.</p>
+  <p>© 2026 Decision Stream - 중기 스윙 투자 프레임워크</p>
+</div>
+
+<script>
+// ========== Configuration ==========
+const USER_PLAN = "β v1.0"; // FREE | PRO | ELITE
+
+// 환경 자동 감지
+const isDevelopment = window.location.hostname === 'localhost' || 
+                     window.location.hostname === '127.0.0.1';
+
+const API = isDevelopment 
+  ? "http://127.0.0.1:8125" 
+  : "https://decision-stream-backend.railway.app"; // ⚠️ Railway 배포 후 실제 도메인으로 변경
+
+const ACCESS_KEY = "ds-test-2026";
+const USE_MOCK_DATA = true; // ⬅️ 항상 Mock 데이터 사용 (테스트용)
+
+// ========== State ==========
+let selectedSector = null;
+let selectedStock = null;
+let lastPlan = null;
+let regimeData = null;
+let sectorData = null;
+let funnelData = null;
+
+// ========== Helpers ==========
+const $ = sel => document.querySelector(sel);
+const $$ = sel => document.querySelectorAll(sel);
+const withKey = p => `${API}${p}${p.includes('?')?'&':'?'}key=${ACCESS_KEY}`;
+
+// Mock 데이터
+const MOCK_DATA = {
+  regime: {
+    state: 'RISK_ON',
+    score: 2,
+    max_score: 3,
+    playbook: '눌림 매수 허가',
+    factors: {
+      breadth: true,     // 상승:하락 1.3:1
+      volatility: true,  // VKOSPI 18
+      theme: false       // 지속 테마 1개 미만
+    },
+    note: 'Risk_ON = 사도 죽지 않을 확률이 높다',
+    detail: {
+      breadth_ratio: '1.3:1 (상승 650, 하락 500)',
+      vkospi: 18,
+      lasting_themes: ['방산']
+    }
+  },
+  sectors: [
+    { sector: '방산', flow_score: 97, flow_signal: 'SURGE', duration: '2주 지속' },
+    { sector: '헬스케어', flow_score: 96, flow_signal: 'SURGE', duration: '1주 지속' },
+    { sector: 'AI 반도체', flow_score: 46, flow_signal: 'NORMAL', duration: '-' },
+    { sector: '전력', flow_score: 45, flow_signal: 'NORMAL', duration: '-' },
+    { sector: '에너지', flow_score: 8, flow_signal: 'NORMAL', duration: '-' }
+  ],
+  funnels: {
+    '방산': {
+      leader: [
+        { ticker: 'LMT', name: 'Lockheed Martin', price: 581.00 }
+      ],
+      follower: [
+        { ticker: '012450', name: '한화에어로스페이스', price: 185000 },
+        { ticker: '079550', name: 'LIG넥스원', price: 544000 }
+      ],
+      nogo: [
+        { 
+          ticker: 'RTX', 
+          name: 'Raytheon Technologies', 
+          price: 98.50,
+          reason: '과열 (3일 +22%, 거래대금 폭발)',
+          detail: '단일 기사 급등, 개인만 매수'
+        }
+      ]
+    },
+    '헬스케어': {
+      leader: [
+        { ticker: 'JNJ', name: 'Johnson & Johnson', price: 215.00 }
+      ],
+      follower: [
+        { ticker: '207940', name: '삼성바이오로직스', price: 850000 },
+        { ticker: '068270', name: '셀트리온', price: 175000 }
+      ],
+      nogo: [
+        {
+          ticker: '086900',
+          name: '메디톡스',
+          price: 45000,
+          reason: '테마 말기 (5번째 급등주)',
+          detail: '유동성 부족, 커뮤니티 과열'
+        }
+      ]
+    },
+    'AI 반도체': {
+      leader: [
+        { ticker: 'NVDA', name: 'NVIDIA', price: 875.00 }
+      ],
+      follower: [
+        { ticker: '005930', name: '삼성전자', price: 75000 },
+        { ticker: '000660', name: 'SK하이닉스', price: 142000 }
+      ],
+      nogo: [
+        {
+          ticker: 'XYZ123',
+          name: 'AI테마주',
+          price: 12000,
+          reason: '루머성 재료 (검증 안됨)',
+          detail: '혼자 급등, 기관/외국인 매도'
+        }
+      ]
+    }
+  },
+  market_intelligence: {
+    script: `현재 시장은 RISK_ON 국면이며, 자금이 방산과 헬스케어 섹터로 집중되고 있습니다.\n\n방산 섹터는 2주째 SURGE 신호를 유지하고 있으며, Lockheed Martin과 한화에어로스페이스가 Follower로 분류됩니다.\n\n전략: 눌림 매수 대기. 20일선 지지 확인 후 진입을 권장합니다.`
+  }
+};
+
+const fetchJSON = async (url) => {
+  // Mock 데이터 사용
+  if (USE_MOCK_DATA) {
+    console.log('🔵 Using Mock Data:', url);
+    
+    // 즉시 반환 (딜레이 제거)
+    if (url.includes('/regime')) {
+      console.log('✅ Returning regime data');
+      return MOCK_DATA.regime;
+    }
+    if (url.includes('/sectors')) {
+      console.log('✅ Returning sectors data');
+      return MOCK_DATA.sectors;
+    }
+    if (url.includes('/funnel')) {
+      const sector = url.match(/sector=([^&]+)/)?.[1];
+      const decodedSector = decodeURIComponent(sector || '');
+      console.log('✅ Returning funnel data for:', decodedSector);
+      return MOCK_DATA.funnels[decodedSector] || null;
+    }
+    if (url.includes('/market_intelligence')) {
+      console.log('✅ Returning market intelligence');
+      return MOCK_DATA.market_intelligence;
+    }
+    if (url.includes('/checklist')) {
+      return {
+        '가격 구조': true,
+        '수급 신호': true,
+        '변동성': false,
+        '리스크': true
+      };
+    }
+    if (url.includes('/nogo_report')) {
+      return {
+        reasons: ['과열 신호 감지', '거래량 급증'],
+        conclusion: '진입 금지'
+      };
+    }
+    if (url.includes('/plan')) {
+      return {
+        entry: { breakout: '100,000', pullback: '98,000' },
+        stop_loss: '95,000',
+        targets: ['105,000', '110,000'],
+        position_size: '20%'
+      };
+    }
+    
+    console.warn('⚠️ No mock data for:', url);
+    return null;
+  }
+  
+  // 실제 API 호출
+  try {
+    console.log('🌐 Fetching from API:', url);
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    console.log('✅ API response:', data);
+    return data;
+  } catch (error) {
+    console.error('❌ API Error:', error);
+    console.log('⚠️ Falling back to Mock Data');
+    // API 실패 시 Mock 데이터로 폴백
+    return fetchJSON(url.replace(API, ''));
+  }
+};
+
+// ========== 1. Market Regime ==========
+async function loadRegime() {
+  regimeData = await fetchJSON(withKey('/regime'));
+  if (!regimeData) return;
+  
+  $('#playbook').innerText = regimeData.playbook || '-';
+  
+  // Risk Score 표시 (3점 만점)
+  const scoreText = `${regimeData.score || 0} / ${regimeData.max_score || 3}`;
+  $('#risk-score').innerText = scoreText;
+  
+  const badge = $('#regime-badge');
+  badge.textContent = regimeData.state || 'UNKNOWN';
+  badge.className = 'badge ' + (regimeData.state === 'RISK_ON' ? 'ok' : 'err');
+  
+  // 3가지 기준 표시
+  const factors = regimeData.factors || {};
+  const factorText = `
+    ✓ Breadth (시장 확산): ${factors.breadth ? '✅' : '❌'}<br>
+    ✓ Volatility (변동성 억제): ${factors.volatility ? '✅' : '❌'}<br>
+    ✓ Theme (테마 지속): ${factors.theme ? '✅' : '❌'}
+  `;
+  
+  $('#regime-desc').innerHTML = factorText;
+  
+  // 시장 해설 자동 생성
+  generateMarketIntelligence();
+}
+
+// ========== 2. Sectors ==========
+async function loadSectors() {
+  const list = $('#sector-list');
+  list.innerHTML = '';
+  
+  sectorData = await fetchJSON(withKey('/sectors'));
+  if (!sectorData || sectorData.length === 0) {
+    list.innerHTML = '<div class="small">데이터가 없습니다.</div>';
+    return;
+  }
+  
+  const surge = [];
+  sectorData.forEach(s => {
+    const it = document.createElement('div');
+    it.className = 'item';
+    
+    const isSurge = s.flow_signal === 'SURGE';
+    if (isSurge) surge.push(s.sector);
+    else it.classList.add('disabled');
+    
+    it.innerHTML = `
+      <div class="row">
+        <b>${s.sector}</b>
+        <span class="badge ${isSurge ? 'ok' : 'warn'}">${s.flow_signal}</span>
+      </div>
+      <div class="small">Flow ${s.flow_score} · ${s.duration || '-'}</div>
+    `;
+    
+    if (isSurge) {
+      it.onclick = () => {
+        $$('.item').forEach(el => el.style.borderColor = 'var(--line)');
+        it.style.borderColor = '#3a49a5';
+        loadFunnel(s.sector);
+      };
+    }
+    
+    list.appendChild(it);
+  });
+  
+  $('#sector-desc').innerText = surge.length
+    ? `현재 자금이 ${surge.join(', ')} 섹터로 집중.`
+    : '뚜렷한 자금 집중 섹터 없음.';
+}
+
+// ========== 3. Funnel ==========
+async function loadFunnel(sector) {
+  selectedSector = sector;
+  $('#funnel-status').innerText = `선택 섹터: ${sector}`;
+  
+  $('#leader').innerHTML = '<div class="loading">로딩중...</div>';
+  $('#follower').innerHTML = '<div class="loading">로딩중...</div>';
+  $('#nogo').innerHTML = '<div class="loading">로딩중...</div>';
+  
+  funnelData = await fetchJSON(withKey(`/funnel?sector=${encodeURIComponent(sector)}`));
+  
+  if (!funnelData) {
+    $('#leader').innerHTML = '<div class="small">데이터 없음</div>';
+    $('#follower').innerHTML = '<div class="small">데이터 없음</div>';
+    $('#nogo').innerHTML = '<div class="small">데이터 없음</div>';
+    return;
+  }
+  
+  const addStock = (boxId, stocks, funnelType) => {
+    const box = $(boxId);
+    box.innerHTML = '';
+    
+    if (!stocks || stocks.length === 0) {
+      box.innerHTML = '<div class="small">-</div>';
+      return;
+    }
+    
+    stocks.forEach(stock => {
+      const it = document.createElement('div');
+      it.className = 'item';
+      
+      // No-Go는 빨간색 스타일 + 경고 아이콘
+      if (funnelType === 'NO_GO') {
+        it.style.borderColor = '#ff4d4d';
+        it.style.background = 'rgba(255,77,77,0.05)';
+        it.innerHTML = `
+          <b style="color:#ff4d4d;">⚠️ ${stock.name || stock.ticker}</b><br>
+          <small style="color:#ff9999;">${stock.ticker}</small><br>
+          <small style="color:#aab3d6; font-size:10px; margin-top:4px; display:block;">
+            ${stock.reason || '회피 대상'}
+          </small>
+        `;
+        
+        // No-Go 클릭 시 상세 이유 표시
+        it.onclick = () => {
+          $$('.item').forEach(el => el.style.borderColor = el.style.borderColor || 'var(--line)');
+          it.style.borderColor = '#ff4d4d';
+          displayNoGoReason(stock);
+        };
+      } else {
+        it.innerHTML = `<b>${stock.name || stock.ticker}</b><br><small>${stock.ticker}</small>`;
+        
+        it.onclick = () => {
+          selectedStock = {...stock, type: funnelType};  // 타입 저장
+          $$('.item').forEach(el => el.style.borderColor = 'var(--line)');
+          it.style.borderColor = '#3a49a5';
+          
+          // Watch & Checklist 표시
+          displayChecklist(stock, funnelType);
+        };
+      }
+      
+      box.appendChild(it);
+    });
+  };
+  
+  addStock('#leader', funnelData.leader, 'LEADER');
+  addStock('#follower', funnelData.follower, 'FOLLOWER');
+  addStock('#nogo', funnelData.nogo, 'NO_GO');
+  
+  $('#funnel-desc').innerText = funnelData.leader && funnelData.leader.length
+    ? '선도주 형성. 눌림 매수 구간.'
+    : funnelData.follower && funnelData.follower.length
+    ? '섹터는 강하나 아직 돌파 전.'
+    : '매수 확률이 낮은 섹터.';
+}
+
+// ========== Market Intelligence (자동 생성 - 전문가 수준 분석) ==========
+async function generateMarketIntelligence() {
+  const box = $('#market-intelligence');
+  if (!box) return;
+  
+  try {
+    // API에서 시장 해설 가져오기
+    const intelligence = await fetchJSON(withKey('/market_intelligence'));
+    
+    if (intelligence && intelligence.script) {
+      box.innerHTML = intelligence.script.replace(/\n/g, '<br>');
+      return;
+    }
+    
+    // 로컬 데이터로 전문가급 자동 분석 생성
+    if (!regimeData) {
+      box.innerHTML = '⚠️ 시장 데이터 로딩 중...';
+      return;
+    }
+    
+    let script = '';
+    
+    // 1) Regime 분석 (왜 이 환경이 중요한가)
+    script += `<b>1️⃣ 현재 시장 환경</b><br><br>`;
+    script += `<b>${regimeData.state}</b> (${regimeData.score}/${regimeData.max_score})<br>`;
+    script += `Playbook: <b>${regimeData.playbook}</b><br><br>`;
+    
+    if (regimeData.state === 'RISK_ON' && regimeData.score >= 2) {
+      script += `✅ <b>통계적으로 가장 돈 벌기 쉬운 구간</b><br><br>`;
+      script += `이유:<br>`;
+      script += `• RISK_ON = 주식 비중 늘리는 국면<br>`;
+      if (regimeData.factors?.volatility) {
+        script += `• 변동성 안정 = 패닉 매도 없음<br>`;
+      }
+      if (regimeData.factors?.breadth) {
+        script += `• 시장 확산 = 일부 종목 착시 아님<br>`;
+      }
+      script += `<br>👉 이때는 <b>섹터 리더</b>가 계속 돈을 빨아들임<br>`;
+      script += `👉 ${regimeData.playbook} = 추격 매수 아닌 <b>눌림 매수</b>가 정답<br><br>`;
+    } else if (regimeData.state === 'RISK_OFF') {
+      script += `⚠️ <b>방어 국면 - 진입 금지</b><br><br>`;
+      script += `• 현금 비중 확대<br>`;
+      script += `• 기존 포지션 손절 검토<br>`;
+      script += `• Risk-On 전환 대기<br><br>`;
+    }
+    
+    // 2) Sector 해석 (왜 이 섹터들인가)
+    if (sectorData && sectorData.length > 0) {
+      script += `<b>2️⃣ 자금의 배치 (Capital Map)</b><br><br>`;
+      
+      const surge = sectorData.filter(x => x.flow_signal === 'SURGE');
+      
+      if (surge.length > 0) {
+        script += `<b>자금이 집중되는 곳:</b><br>`;
+        surge.forEach(s => {
+          script += `• ${s.sector} (${s.flow_score}점) - ${s.duration}<br>`;
+        });
+        script += `<br>`;
+        
+        // 섹터 조합 해석
+        const sectors = surge.map(s => s.sector);
+        if (sectors.includes('방산') && sectors.includes('헬스케어')) {
+          script += `<b>📌 이 조합의 의미:</b><br>`;
+          script += `• <b>공격 자금</b> → 방산 (지정학 리스크를 수익으로)<br>`;
+          script += `• <b>방어 자금</b> → 헬스케어 (경기 둔화 대비 현금흐름)<br><br>`;
+          script += `👉 글로벌 자산배분 로직: <b>전쟁·금리 피크·경기 둔화 동시 반영</b><br><br>`;
+        } else if (sectors.includes('방산')) {
+          script += `<b>📌 방산 집중:</b> 지정학적 위험이 투자 기회로 전환 중<br><br>`;
+        } else if (sectors.includes('헬스케어')) {
+          script += `<b>📌 헬스케어 집중:</b> 방어적 포지셔닝 강화<br><br>`;
+        }
+      }
+    }
+    
+    // 3) Stock Funnel 핵심 구조 분석
+    if (funnelData && selectedSector) {
+      script += `<b>3️⃣ ${selectedSector} 섹터 구조</b><br><br>`;
+      
+      const leaders = funnelData.leader || [];
+      const followers = funnelData.follower || [];
+      
+      script += `Leader: ${leaders.length > 0 ? leaders.map(x => x.name || x.ticker).join(', ') : '<b>없음</b>'}<br>`;
+      script += `Follower: ${followers.length > 0 ? followers.map(x => x.name || x.ticker).join(', ') : '<b>없음</b>'}<br><br>`;
+      
+      // 구조별 정밀 해석
+      if (leaders.length === 0 && followers.length > 0) {
+        script += `<b>🎯 매우 중요한 구조 (최고 수익률 단계)</b><br><br>`;
+        script += `<b>섹터는 달리는데, 종목은 아직 안 터짐</b><br><br>`;
+        script += `일반적 순서:<br>`;
+        script += `1) 섹터 자금 유입 ✅<br>`;
+        script += `2) <b>Follower 급등 ← 지금 여기</b><br>`;
+        script += `3) Leader 확정<br>`;
+        script += `4) 개인 몰림 → 끝<br><br>`;
+        script += `👉 ${followers.map(x => x.name || x.ticker).join(', ')}가 Follower = <b>다음 리더 후보</b><br>`;
+        script += `👉 전략: <b>돌파 추격 아닌, 눌림에서 조용히 매집</b><br><br>`;
+      } else if (leaders.length > 0 && followers.length === 0) {
+        const leaderName = leaders[0].name || leaders[0].ticker;
+        script += `<b>📌 자금 집중 구조</b><br><br>`;
+        script += `• ${leaderName}에만 자금 집중<br>`;
+        script += `• 섹터 확산 아직 안 됨<br><br>`;
+        
+        if (selectedSector === '헬스케어' || leaderName.includes('JNJ')) {
+          script += `<b>JNJ의 의미:</b><br>`;
+          script += `• 현금흐름 + 배당 + 글로벌 방어 자산<br>`;
+          script += `• 기관의 "안전한 피난처" 포지션<br><br>`;
+          script += `👉 트레이딩 아닌 <b>포트폴리오 안정화</b><br>`;
+          script += `👉 전략: 눌림보다 <b>추세 추종</b>이 맞음<br><br>`;
+        } else {
+          script += `👉 전략: <b>안정형·방어형 트레이드 최적</b><br><br>`;
+        }
+      } else if (leaders.length > 0 && followers.length > 0) {
+        script += `<b>📌 섹터 전체 상승 국면</b><br><br>`;
+        script += `• 선도주가 이끌고 추종주가 따라옴<br>`;
+        script += `• Leader: 추격 주의 (이미 많이 오름)<br>`;
+        script += `• Follower: <b>눌림 매수 타이밍</b><br><br>`;
+      }
+    }
+    
+    // 4) 실전 전략 (투자 성향별)
+    script += `<b>4️⃣ 실전 전략 (성향별)</b><br><br>`;
+    
+    if (regimeData.state === 'RISK_ON' && sectorData) {
+      const surge = sectorData.filter(x => x.flow_signal === 'SURGE');
+      
+      if (surge.length > 0 && funnelData && selectedSector) {
+        const followers = funnelData.follower || [];
+        const leaders = funnelData.leader || [];
+        
+        if (followers.length > 0) {
+          script += `<b>공격적:</b> ${selectedSector} → `;
+          script += `${followers.slice(0, 2).map(x => x.name || x.ticker).join(', ')} <b>눌림 매수 대기</b><br>`;
+        }
+        
+        if (leaders.length > 0) {
+          const leaderName = leaders[0].name || leaders[0].ticker;
+          if (selectedSector === '헬스케어' || leaderName.includes('JNJ')) {
+            script += `<b>안정적:</b> ${leaderName} <b>추세 추종</b> (타이밍보다 보유)<br>`;
+          } else {
+            script += `<b>안정적:</b> ${leaderName} 추세 추종<br>`;
+          }
+        }
+        
+        script += `<b>현금 많음:</b> 감시만, <b>추격 금지</b><br><br>`;
+      }
+      
+      script += `<b>🎯 핵심:</b><br>`;
+      script += `아무거나 사는 장이 아니라<br>`;
+      script += `<b>"자금이 몰리는 섹터 안에서, 눌림을 기다리는 장"</b><br><br>`;
+      
+      // 시장 구조 한 문장 요약
+      if (surge.length >= 2) {
+        const sectors = surge.map(s => s.sector);
+        if (sectors.includes('방산') && sectors.includes('헬스케어')) {
+          script += `<b>📊 현재 시장 구조:</b><br>`;
+          script += `<b>"공격 자금은 방산으로, 방어 자금은 헬스케어로 이동 중인 Risk-On 장"</b>`;
+        }
+      }
+    } else {
+      script += `<b>현재 전략:</b> 관망 / 현금 대기<br>`;
+      script += `Risk-Off 구간 = 진입 금지`;
+    }
+    
+    box.innerHTML = script;
+    
+  } catch (error) {
+    console.error('Market Intelligence Error:', error);
+    box.innerHTML = '❌ 분석 생성 실패';
+  }
+}
+
+// ========== 4. Watch & Checklist ==========
+
+const STATE_CONFIG = {
+  BUY_NOW: {
+    color: '#4A90E2',
+    icon: '🔵',
+    label: '매수 가능',
+    class: 'state-buy-now',
+    message: '즉시 또는 분할 매수 가능 구간입니다.'
+  },
+  BUY_PULLBACK: {
+    color: '#52D27D',
+    icon: '🟢',
+    label: '눌림 대기',
+    class: 'state-buy-pullback',
+    message: '추격이 아니라 눌림을 기다립니다.'
+  },
+  ACCUMULATE: {
+    color: '#FFB84D',
+    icon: '🟡',
+    label: '선제 매집',
+    class: 'state-accumulate',
+    message: '미래 Leader 후보로 선제 매집 구간입니다.'
+  },
+  WATCH: {
+    color: '#AAB3D6',
+    icon: '⚪',
+    label: '관찰',
+    class: 'state-watch',
+    message: '관찰하며 타이밍을 기다립니다.'
+  },
+  HOLD_OFF: {
+    color: '#FF9A66',
+    icon: '🟠',
+    label: '보류',
+    class: 'state-hold-off',
+    message: '리스크 요인이 있어 매수를 보류합니다.'
+  },
+  NO_GO: {
+    color: '#FF4D4D',
+    icon: '🔴',
+    label: '매수 금지',
+    class: 'state-no-go',
+    message: '구조적으로 매수 금지입니다.'
+  }
+};
+
+function checkSafetyChecklist(stock, funnelType) {
+  /**
+   * 5가지 체크리스트
+   * "사면 안 되는 이유가 있는가?"
+   */
+  const checks = {
+    priceStructure: false,  // 가격 구조 (과열/이격 없음)
+    volume: false,          // 거래량 정상
+    volatility: false,      // 변동성 안정
+    eventRisk: false,       // 이벤트 리스크 없음
+    pullback: false         // 구조적 눌림
+  };
+  
+  // Mock 체크 (실제로는 차트 데이터로 계산)
+  // 예시: LMT, 한화에어로 등은 통과, 일부는 실패
+  if (stock.ticker === 'LMT' || stock.ticker === '012450') {
+    checks.priceStructure = true;
+    checks.volume = true;
+    checks.volatility = true;
+    checks.eventRisk = true;
+    checks.pullback = true;
+  } else if (stock.ticker === 'JNJ') {
+    checks.priceStructure = true;
+    checks.volume = true;
+    checks.volatility = true;
+    checks.eventRisk = true;
+    checks.pullback = false; // 눌림 아님
+  } else {
+    checks.priceStructure = Math.random() > 0.3;
+    checks.volume = Math.random() > 0.3;
+    checks.volatility = Math.random() > 0.3;
+    checks.eventRisk = Math.random() > 0.5;
+    checks.pullback = Math.random() > 0.4;
+  }
+  
+  const passCount = Object.values(checks).filter(v => v).length;
+  
+  let checklistLevel;
+  if (passCount === 5) {
+    checklistLevel = 'Strong';
+  } else if (passCount === 4) {
+    checklistLevel = 'Medium';
+  } else {
+    checklistLevel = 'Weak';
+  }
+  
+  return { checks, passCount, checklistLevel };
+}
+
+function determineState(funnelType, checklistLevel) {
+  /**
+   * Funnel × Checklist → State 결정
+   */
+  if (funnelType === 'NO_GO') {
+    return 'NO_GO';
+  }
+  
+  if (funnelType === 'LEADER') {
+    if (checklistLevel === 'Strong') return 'BUY_NOW';
+    if (checklistLevel === 'Medium') return 'BUY_PULLBACK';
+    return 'HOLD_OFF';
+  }
+  
+  if (funnelType === 'FOLLOWER') {
+    if (checklistLevel === 'Strong') return 'ACCUMULATE';
+    if (checklistLevel === 'Medium') return 'WATCH';
+    return 'HOLD_OFF';
+  }
+  
+  return 'WATCH';
+}
+
+function displayChecklist(stock, funnelType) {
+  const box = $('#checklist-result');
+  if (!box) return;
+  
+  const { checks, passCount, checklistLevel } = checkSafetyChecklist(stock, funnelType);
+  const state = determineState(funnelType, checklistLevel);
+  const config = STATE_CONFIG[state];
+  
+  $('#checklist-status').innerText = `선택: ${stock.name || stock.ticker} (${funnelType})`;
+  
+  let html = `
+    <div class="state-badge ${config.class}">
+      ${config.icon} ${config.label}
+    </div>
+    <p style="font-size:13px; color:#aab3d6; margin-bottom:15px;">
+      ${config.message}
+    </p>
+    <div class="small" style="margin-bottom:8px;">
+      <b>Checklist: ${passCount}/5 (${checklistLevel})</b>
+    </div>
+    <div class="checklist-grid">
+  `;
+  
+  const checkItems = [
+    { key: 'priceStructure', label: '가격 구조 (과열/이격 없음)' },
+    { key: 'volume', label: '거래량 정상' },
+    { key: 'volatility', label: '변동성 안정' },
+    { key: 'eventRisk', label: '이벤트 리스크 없음' },
+    { key: 'pullback', label: '구조적 눌림 구간' }
+  ];
+  
+  checkItems.forEach(item => {
+    const pass = checks[item.key];
+    html += `
+      <div class="check-item ${pass ? 'pass' : 'fail'}">
+        <div class="check-icon">${pass ? '✅' : '❌'}</div>
+        <div class="check-text">${item.label}</div>
+      </div>
+    `;
+  });
+  
+  html += '</div>';
+  
+  // 9요소 점수 표시 (클릭 가능)
+  html += `
+    <div class="sep"></div>
+    <div class="small" style="margin-bottom:8px;">
+      <b>💯 9요소 점수 (클릭하여 상세 보기)</b>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
+      <div onclick="openWhyDrawer('flow', selectedStock)" 
+           style="padding:8px; background:rgba(102,126,234,0.1); border-radius:6px; cursor:pointer; transition:all 0.2s;"
+           onmouseover="this.style.background='rgba(102,126,234,0.2)'"
+           onmouseout="this.style.background='rgba(102,126,234,0.1)'">
+        <div style="font-size:11px; color:#aab3d6;">자금 흐름</div>
+        <div style="font-size:18px; font-weight:700; color:#667eea;">85 <span style="font-size:11px; opacity:0.7;">/100</span></div>
+      </div>
+      <div onclick="openWhyDrawer('structure', selectedStock)" 
+           style="padding:8px; background:rgba(102,126,234,0.1); border-radius:6px; cursor:pointer; transition:all 0.2s;"
+           onmouseover="this.style.background='rgba(102,126,234,0.2)'"
+           onmouseout="this.style.background='rgba(102,126,234,0.1)'">
+        <div style="font-size:11px; color:#aab3d6;">가격 구조</div>
+        <div style="font-size:18px; font-weight:700; color:#667eea;">78 <span style="font-size:11px; opacity:0.7;">/100</span></div>
+      </div>
+      <div onclick="openWhyDrawer('narrative', selectedStock)" 
+           style="padding:8px; background:rgba(102,126,234,0.1); border-radius:6px; cursor:pointer; transition:all 0.2s;"
+           onmouseover="this.style.background='rgba(102,126,234,0.2)'"
+           onmouseout="this.style.background='rgba(102,126,234,0.1)'">
+        <div style="font-size:11px; color:#aab3d6;">서사</div>
+        <div style="font-size:18px; font-weight:700; color:#667eea;">72 <span style="font-size:11px; opacity:0.7;">/100</span></div>
+      </div>
+      <div onclick="openWhyDrawer('risk', selectedStock)" 
+           style="padding:8px; background:rgba(239,68,68,0.1); border-radius:6px; cursor:pointer; transition:all 0.2s;"
+           onmouseover="this.style.background='rgba(239,68,68,0.2)'"
+           onmouseout="this.style.background='rgba(239,68,68,0.1)'">
+        <div style="font-size:11px; color:#aab3d6;">리스크</div>
+        <div style="font-size:18px; font-weight:700; color:#ef4444;">25 <span style="font-size:11px; opacity:0.7;">/100</span></div>
+      </div>
+    </div>
+  `;
+  
+  // 상태별 추가 멘트
+  if (funnelType === 'LEADER' && state === 'BUY_NOW') {
+    html += `
+      <div class="sep"></div>
+      <div class="small" style="color:#4A90E2;">
+        💡 Leader + Checklist 완벽 → 즉시/분할 매수 가능
+      </div>
+    `;
+  } else if (funnelType === 'FOLLOWER' && state === 'ACCUMULATE') {
+    html += `
+      <div class="sep"></div>
+      <div class="small" style="color:#FFB84D;">
+        💡 Follower + Checklist Strong → 선제 매집 (미래 Leader 후보)
+      </div>
+    `;
+  } else if (state === 'HOLD_OFF') {
+    html += `
+      <div class="sep"></div>
+      <div class="small" style="color:#FF9A66;">
+        ⚠️ Checklist 부족 → 매수 보류 권장
+      </div>
+    `;
+  }
+  
+  box.innerHTML = html;
+  
+  // Trade Plan 생성
+  buildTradePlan(stock, funnelType);
+}
+
+// No-Go 상세 이유 표시
+function displayNoGoReason(stock) {
+  const box = $('#checklist-result');
+  const statusBox = $('#checklist-status');
+  
+  if (!box || !statusBox) return;
+  
+  statusBox.innerText = `선택: ${stock.name || stock.ticker} (NO-GO)`;
+  
+  const reasons = stock.reasons || [stock.reason || '회피 대상'];
+  
+  let html = `
+    <div class="state-badge state-no-go">
+      🔴 매수 금지
+    </div>
+    <p style="font-size:13px; color:#ff9999; margin-bottom:15px; line-height:1.6;">
+      이 종목은 다음 이유로 <b>구조적으로 매수 금지</b>입니다.
+    </p>
+    
+    <div class="plan-section" style="border-left-color:#ff4d4d;">
+      <h4 style="color:#ff4d4d;">⚠️ 회피 사유</h4>
+  `;
+  
+  reasons.forEach((reason, idx) => {
+    html += `
+      <div class="plan-row">
+        <span class="plan-label">${idx + 1}.</span>
+        <span class="plan-value bearish">${reason}</span>
+      </div>
+    `;
+  });
+  
+  html += `
+    </div>
+    
+    <div class="small" style="color:#aab3d6; line-height:1.6; margin-top:12px;">
+      <b>💡 왜 No-Go인가?</b><br><br>
+      • 단일 기사 급등: 루머 가능성<br>
+      • 갭 후 장대 음봉: 분배 신호<br>
+      • 테마 5번째 이후: 후발주 위험<br>
+      • 개인 80%+기관 이탈: 지속성 낮음<br>
+      • 이평선 동시 이탈: 약세 전환<br>
+      • 손절선 설정 불가: 변동성 과다<br><br>
+      
+      <b style="color:#ff4d4d;">→ 이런 종목은 "왜 오를까?"가 아니라 "왜 급락할까?"를 먼저 고민해야 합니다.</b>
+    </div>
+  `;
+  
+  box.innerHTML = html;
+  
+  // Trade Plan 카드 숨기기
+  const tradePlanCard = $('#trade-plan-card');
+  if (tradePlanCard) {
+    tradePlanCard.style.display = 'none';
+  }
+}
+
+// ========== 5. Trade Plan Builder ==========
+
+function buildTradePlan(stock, funnelType) {
+  /**
+   * 매매 계획 자동 생성
+   * 핵심: 손절 먼저 고정 → 진입 → 목표
+   */
+  const card = $('#trade-plan-card');
+  const resultBox = $('#plan-result');
+  
+  if (!card || !resultBox || !stock) return;
+  
+  // 카드 표시
+  card.style.display = 'block';
+  
+  // 사용자 입력
+  const period = $('#plan-period').value || '중기';
+  const risk = $('#plan-risk').value || '중립';
+  
+  // 손절 먼저 계산 (구조 기반)
+  const price = stock.price || 185000;
+  const ma20 = stock.ma20 || price * 0.97;
+  const support = Math.min(ma20, price * 0.95);  // 20일선 or 5% 아래
+  const stopLoss = Math.floor(support * 0.97);   // 지지선 -3%
+  
+  // 진입 2안
+  const entryBreakout = Math.ceil(price * 1.01);  // 돌파 진입 (+1%)
+  const entryPullback = Math.floor(ma20);          // 눌림 매수 (20일선)
+  
+  // 리스크 금액
+  const riskAmount = price - stopLoss;
+  
+  // 리스크 성향별 배수
+  const riskReward = {
+    '보수': 2.0,
+    '중립': 2.5,
+    '공격': 3.0
+  };
+  
+  const multiplier = riskReward[risk] || 2.5;
+  
+  // 목표 2안
+  const targetConservative = Math.ceil(price + riskAmount * multiplier);
+  const targetAggressive = Math.ceil(price + riskAmount * multiplier * 1.5);
+  
+  // 포지션 사이즈 (변동성 기반)
+  const volatility = stock.volatility || 0.08;  // 8% 변동성 가정
+  let positionSize = volatility < 0.1 ? 0.25 : 0.20;  // 25% or 20%
+  
+  if (risk === '보수') positionSize *= 0.8;
+  if (risk === '공격') positionSize *= 1.2;
+  
+  positionSize = Math.round(positionSize * 100);
+  
+  // 최대 보유 기간
+  const maxHoldingDays = period === '단기' ? 10 : 60;
+  
+  // HTML 생성
+  let html = `
+    <div class="small" style="margin-bottom:12px; color:var(--muted);">
+      ${period} / ${risk} 성향 기준
+    </div>
+    
+    <div class="plan-section">
+      <h4>📍 진입 2안</h4>
+      <div class="plan-row">
+        <span class="plan-label">✓ 돌파 진입</span>
+        <span class="plan-value bullish">${entryBreakout.toLocaleString()}원</span>
+      </div>
+      <div class="plan-row">
+        <span class="plan-label">✓ 눌림 매수</span>
+        <span class="plan-value bullish">${entryPullback.toLocaleString()}원</span>
+      </div>
+      <div class="small" style="margin-top:8px; color:var(--muted);">
+        💡 최근 고점 돌파 시 또는 20일선 지지 시
+      </div>
+    </div>
+    
+    <div class="plan-section">
+      <h4>✗ 손절 (무조건)</h4>
+      <div class="plan-row">
+        <span class="plan-label">구조 이탈 시</span>
+        <span class="plan-value bearish">${stopLoss.toLocaleString()}원</span>
+      </div>
+      <div class="small" style="margin-top:8px; color:#ff4d4d;">
+        ⚠️ 손절 여유: ${((riskAmount / price) * 100).toFixed(1)}% (${riskAmount.toLocaleString()}원)
+      </div>
+    </div>
+    
+    <div class="plan-section">
+      <h4>🎯 목표 2안 + 분할</h4>
+      <div class="plan-row">
+        <span class="plan-label">1차 목표 (50% 매도)</span>
+        <span class="plan-value bullish">${targetConservative.toLocaleString()}원</span>
+      </div>
+      <div class="plan-row">
+        <span class="plan-label">2차 목표 (30% 매도)</span>
+        <span class="plan-value bullish">${targetAggressive.toLocaleString()}원</span>
+      </div>
+      <div class="plan-row">
+        <span class="plan-label">나머지 20%</span>
+        <span class="plan-value">추세 추종</span>
+      </div>
+      <div class="small" style="margin-top:8px; color:var(--muted);">
+        💡 리스크 대비 수익: 1 : ${multiplier} (${risk} 성향)
+      </div>
+    </div>
+    
+    <div class="plan-section">
+      <h4>📊 포지션 관리</h4>
+      <div class="plan-row">
+        <span class="plan-label">권장 포지션 사이즈</span>
+        <span class="plan-value">${positionSize}%</span>
+      </div>
+      <div class="plan-row">
+        <span class="plan-label">최대 보유 기간</span>
+        <span class="plan-value">${maxHoldingDays}일</span>
+      </div>
+      <div class="small" style="margin-top:8px; color:var(--muted);">
+        💡 변동성 ${(volatility * 100).toFixed(1)}% 고려한 사이즈
+      </div>
+    </div>
+  `;
+  
+  // Leader/Follower별 추가 멘트
+  if (funnelType === 'LEADER') {
+    html += `
+      <div class="sep"></div>
+      <div class="small" style="color:#4ade80; line-height:1.6;">
+        <b>Leader 전략:</b><br>
+        • 돌파 또는 눌림 중 빠른 타이밍<br>
+        • 1차 목표 50% 반드시 익절<br>
+        • 나머지는 추세 추종
+      </div>
+    `;
+  } else if (funnelType === 'FOLLOWER') {
+    html += `
+      <div class="sep"></div>
+      <div class="small" style="color:#ffb84d; line-height:1.6;">
+        <b>Follower 전략:</b><br>
+        • 눌림 매수만 집행 (돌파 추격 금지)<br>
+        • Leader 이탈 시 즉시 손절<br>
+        • 인내심 필요 (1~2주 대기 가능)
+      </div>
+    `;
+  }
+  
+  resultBox.innerHTML = html;
+}
+
+// ========== Trade Plan 통합 함수 ==========
+
+/**
+ * 상세 시뮬레이션 페이지 열기
+ * index.html → trade_plan_simulation.html seamless 연결
+ */
+function openDetailedSimulation() {
+  if (!selectedStock) {
+    alert('먼저 종목을 선택하세요.');
+    return;
+  }
+  
+  // 현재 선택된 값들 가져오기
+  const period = $('#plan-period')?.value || '중기';
+  const risk = $('#plan-risk')?.value || '중립';
+  
+  // 시장 결정 (티커로 판단)
+  const ticker = selectedStock.ticker || '';
+  const isUSStock = /^[A-Z]+$/.test(ticker) && ticker.length <= 5;
+  const market = isUSStock ? 'US' : 'KR';
+  
+  // Risk 매핑 (한글 → 영문)
+  const riskMapping = {
+    '보수': 'conservative',
+    '중립': 'neutral',
+    '공격': 'aggressive'
+  };
+  const riskEng = riskMapping[risk] || 'neutral';
+  
+  // Period 매핑
+  const periodMapping = {
+    '단기': '단기',
+    '중기': '중기'
+  };
+  const periodKor = periodMapping[period] || '중기';
+  
+  // URL 파라미터 생성
+  const params = new URLSearchParams({
+    market: market,
+    sector: selectedSector || '',
+    ticker: selectedStock.ticker || '',
+    name: selectedStock.name || '',
+    price: selectedStock.price || '',
+    period: periodKor,
+    risk: riskEng,
+    capital: '10000000',  // 기본 1천만원
+    from: 'index'
+  });
+  
+  // 새 탭에서 시뮬레이션 페이지 열기
+  const url = `trade_plan_simulation.html?${params.toString()}`;
+  window.open(url, '_blank');
+  
+  console.log('📊 Opening detailed simulation:', {
+    stock: selectedStock.name,
+    sector: selectedSector,
+    period: periodKor,
+    risk: risk,
+    url: url
+  });
+}
+
+/**
+ * 실시간 Trade Plan 미리보기 업데이트
+ * 사용자가 기간/리스크 변경 시 즉시 반영
+ */
+function updateTradePlan() {
+  if (!selectedStock) {
+    const resultBox = $('#plan-result');
+    if (resultBox) {
+      resultBox.innerHTML = `
+        <div class="small" style="color:var(--muted); text-align:center; padding:20px;">
+          종목을 먼저 선택하세요.
+        </div>
+      `;
+    }
+    return;
+  }
+  
+  // 현재 선택된 종목의 funnelType 가져오기
+  const funnelType = selectedStock.type || 'FOLLOWER';
+  
+  // buildTradePlan 재실행 (기존 함수 활용)
+  buildTradePlan(selectedStock, funnelType);
+  
+  console.log('🔄 Trade Plan updated:', {
+    stock: selectedStock.name,
+    period: $('#plan-period')?.value,
+    risk: $('#plan-risk')?.value
+  });
+}
+
+// ========== Why Drawer + Devil's Advocate ==========
+
+/**
+ * Why Drawer 열기
+ * 점수를 클릭하면 근거와 반대 의견을 표시
+ */
+function openWhyDrawer(scoreType, stock) {
+  console.log('🔍 Opening Why Drawer:', scoreType, stock);
+  
+  // 점수 데이터 생성
+  const scoreData = generateScoreData(scoreType, stock);
+  
+  // UI 업데이트
+  $('#drawer-title').innerText = `🔍 Why ${scoreData.label}: ${scoreData.score}/100?`;
+  $('#drawer-score').innerText = scoreData.score;
+  $('#drawer-label').innerText = scoreData.label;
+  
+  // 지지 근거 렌더링
+  renderSupportingReasons(scoreData.supportingReasons);
+  
+  // 반대 의견 렌더링
+  renderCounterArguments(scoreData.counterArguments);
+  
+  // 신뢰도 표시
+  $('#confidence-level').innerText = `${scoreData.confidence}%`;
+  
+  // 모달 표시
+  $('#why-drawer').style.display = 'block';
+}
+
+/**
+ * Why Drawer 닫기
+ */
+function closeWhyDrawer() {
+  $('#why-drawer').style.display = 'none';
+}
+
+/**
+ * 점수 데이터 생성 (Devil's Advocate 로직 포함)
+ */
+function generateScoreData(scoreType, stock) {
+  const price = stock?.price || 185000;
+  const ticker = stock?.ticker || '012450';
+  
+  // Mock 데이터 (실제로는 API에서 가져옴)
+  const baseData = {
+    flow: {
+      score: 85,
+      label: '자금 흐름',
+      supportingReasons: [
+        {
+          text: `외국인 5일 누적 순매수 +${(Math.random() * 30 + 10).toFixed(0)}억원`,
+          source: 'KRX 투자자별 매매동향',
+          link: 'http://data.krx.co.kr',
+          weight: 15
+        },
+        {
+          text: `기관 20일 누적 순매수 +${(Math.random() * 80 + 40).toFixed(0)}억원`,
+          source: 'KRX 투자자별 매매동향',
+          link: 'http://data.krx.co.kr',
+          weight: 15
+        },
+        {
+          text: `거래대금 20일 평균 대비 +${(Math.random() * 40 + 20).toFixed(0)}%`,
+          source: 'KRX 시장데이터',
+          link: 'http://data.krx.co.kr',
+          weight: 20
+        }
+      ]
+    },
+    structure: {
+      score: 78,
+      label: '가격 구조',
+      supportingReasons: [
+        {
+          text: '3회 연속 고점 갱신 (상승 추세 확립)',
+          source: '차트 분석',
+          link: '#',
+          weight: 30
+        },
+        {
+          text: `MA20(${Math.floor(price * 0.97).toLocaleString()}원) 위 안정적 거래`,
+          source: '차트 분석',
+          link: '#',
+          weight: 25
+        },
+        {
+          text: '조정 시 거래량 -40% 감소 (건전한 쉼)',
+          source: '차트 분석',
+          link: '#',
+          weight: 20
+        }
+      ]
+    },
+    narrative: {
+      score: 72,
+      label: '서사',
+      supportingReasons: [
+        {
+          text: '최근 7일 관련 뉴스 18건',
+          source: '네이버 금융',
+          link: 'https://finance.naver.com',
+          weight: 30
+        },
+        {
+          text: '정책 키워드: 방산 수출, 정부 발표',
+          source: '뉴스 분석',
+          link: '#',
+          weight: 20
+        },
+        {
+          text: '실적 공시: 수주 2조원 발표',
+          source: 'OpenDART',
+          link: 'https://dart.fss.or.kr',
+          weight: 30
+        }
+      ]
+    },
+    risk: {
+      score: 25,
+      label: '리스크 (낮을수록 좋음)',
+      supportingReasons: [
+        {
+          text: '갭 상승 후 분배 봉 없음',
+          source: '차트 분석',
+          link: '#',
+          weight: -40
+        },
+        {
+          text: '방산 섹터 내 2번째 급등 (선도주 위치)',
+          source: '섹터 분석',
+          link: '#',
+          weight: -30
+        },
+        {
+          text: '일 평균 거래대금 800억원 (충분한 유동성)',
+          source: 'KRX',
+          link: 'http://data.krx.co.kr',
+          weight: -30
+        }
+      ]
+    }
+  };
+  
+  const data = baseData[scoreType] || baseData.flow;
+  
+  // Devil's Advocate: 자동으로 반대 의견 생성
+  data.counterArguments = generateCounterArguments(scoreType, data, stock);
+  
+  // 신뢰도 계산
+  data.confidence = calculateConfidence(data);
+  
+  return data;
+}
+
+/**
+ * Devil's Advocate 로직
+ * 각 점수에 대한 반대 의견 자동 생성
+ */
+function generateCounterArguments(scoreType, data, stock) {
+  const arguments = {
+    flow: [
+      {
+        text: `개인 투자자 순매도 지속 (-${(Math.random() * 30 + 20).toFixed(0)}억원)`,
+        impact: '외국인/기관 단독 매수는 지속성 낮음',
+        severity: 'medium'
+      },
+      {
+        text: `거래대금 급증은 변동성 증가 신호`,
+        impact: '단기 과열 가능성',
+        severity: 'medium'
+      }
+    ],
+    structure: [
+      {
+        text: `MA20 대비 이격률 +${(Math.random() * 10 + 5).toFixed(1)}%`,
+        impact: '단기 추격 리스크',
+        severity: 'low'
+      },
+      {
+        text: `RSI ${(Math.random() * 15 + 65).toFixed(0)}`,
+        impact: '과매수 구간 진입',
+        severity: 'medium'
+      }
+    ],
+    narrative: [
+      {
+        text: '뉴스 급증(7일 18건)은 테마주 과열 신호',
+        impact: '단기 모멘텀 피로도 증가',
+        severity: 'high'
+      },
+      {
+        text: '수주 공시는 이미 주가 반영 (당일 +12% 급등)',
+        impact: '추가 상승 모멘텀 제한적',
+        severity: 'medium'
+      }
+    ],
+    risk: [
+      {
+        text: '리스크 점수 25점 = 낮은 위험이지만, 과신 금지',
+        impact: '예상치 못한 이벤트 발생 가능',
+        severity: 'low'
+      },
+      {
+        text: '섹터 내 2번째 = 1번 종목 이탈 시 동반 하락',
+        impact: '섹터 리더 의존 리스크',
+        severity: 'medium'
+      }
+    ]
+  };
+  
+  return arguments[scoreType] || arguments.flow;
+}
+
+/**
+ * 지지 근거 렌더링
+ */
+function renderSupportingReasons(reasons) {
+  const container = $('#supporting-reasons');
+  if (!container) return;
+  
+  container.innerHTML = '';
+  
+  reasons.forEach((reason, idx) => {
+    const div = document.createElement('div');
+    div.className = 'reason-item';
+    div.innerHTML = `
+      <div class="reason-text">${idx + 1}. ${reason.text}</div>
+      <div class="reason-source">
+        출처: <a href="${reason.link}" target="_blank">${reason.source} 🔗</a>
+        ${reason.weight ? ` | 기여도: ${Math.abs(reason.weight)}점` : ''}
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+/**
+ * 반대 의견 렌더링 (Devil's Advocate)
+ */
+function renderCounterArguments(arguments) {
+  const container = $('#counter-reasons');
+  if (!container) return;
+  
+  container.innerHTML = '';
+  
+  arguments.forEach((arg, idx) => {
+    const severityColor = {
+      low: '#fbbf24',
+      medium: '#fb923c',
+      high: '#ef4444'
+    }[arg.severity];
+    
+    const div = document.createElement('div');
+    div.className = 'reason-item counter';
+    div.innerHTML = `
+      <div class="reason-text">
+        <span style="color:${severityColor};">⚠️</span> ${idx + 1}. ${arg.text}
+      </div>
+      <div class="reason-source">
+        → ${arg.impact}
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+/**
+ * 신뢰도 계산
+ * 반대 의견의 심각도에 따라 신뢰도 감소
+ */
+function calculateConfidence(data) {
+  let confidence = data.score;
+  
+  // 반대 의견이 많을수록 신뢰도 하락
+  const severityWeight = { low: 5, medium: 10, high: 15 };
+  if (data.counterArguments) {
+    data.counterArguments.forEach(arg => {
+      confidence -= severityWeight[arg.severity];
+    });
+  }
+  
+  // 0-100 범위 유지
+  return Math.max(0, Math.min(100, confidence));
+}
+
+// 사용자 입력 변경 시 재계산
+document.addEventListener('DOMContentLoaded', () => {
+  const periodSelect = $('#plan-period');
+  const riskSelect = $('#plan-risk');
+  
+  if (periodSelect) {
+    periodSelect.addEventListener('change', updateTradePlan);
+  }
+  
+  if (riskSelect) {
+    riskSelect.addEventListener('change', updateTradePlan);
+  }
+});
+
+/**
+ * 실시간 Trade Plan 미리보기 업데이트
+ * 사용자가 기간/리스크 변경 시 즉시 반영
+ */
+function updateTradePlan() {
+  if (!selectedStock) {
+    const resultBox = $('#plan-result');
+    if (resultBox) {
+      resultBox.innerHTML = `
+        <div class="small" style="color:var(--muted); text-align:center; padding:20px;">
+          종목을 먼저 선택하세요.
+        </div>
+      `;
+    }
+    return;
+  }
+  
+  // 현재 선택된 종목의 funnelType 가져오기
+  const funnelType = selectedStock.type || 'FOLLOWER';
+  
+  // buildTradePlan 재실행 (기존 함수 활용)
+  buildTradePlan(selectedStock, funnelType);
+  
+  console.log('🔄 Trade Plan updated:', {
+    stock: selectedStock.name,
+    period: $('#plan-period')?.value,
+    risk: $('#plan-risk')?.value
+  });
+}
+
+// 사용자 입력 변경 시 재계산
+document.addEventListener('DOMContentLoaded', () => {
+  const periodInput = $('#plan-period');
+  const riskInput = $('#plan-risk');
+  
+  if (periodInput && riskInput) {
+    [periodInput, riskInput].forEach(input => {
+      input.addEventListener('change', () => {
+        if (selectedStock) {
+          const funnelType = selectedStock.type || 'FOLLOWER';
+          buildTradePlan(selectedStock, funnelType);
+        }
+      });
+    });
+  }
+});
+
+async function init() {
+  console.log('🚀 Initializing Decision Stream v4.0...');
+  
+  try {
+    // Load data
+    console.log('📊 Loading Market Regime...');
+    await loadRegime();
+    
+    console.log('🌡️ Loading Sector Heatmap...');
+    await loadSectors();
+    
+    console.log('✅ All Data Loaded Successfully!');
+  } catch (error) {
+    console.error('❌ Initialization Error:', error);
+    
+    // 에러 시 사용자에게 알림
+    const regimeBadge = $('#regime-badge');
+    if (regimeBadge) {
+      regimeBadge.textContent = '오류';
+      regimeBadge.className = 'badge err';
+    }
+    
+    const sectorList = $('#sector-list');
+    if (sectorList) {
+      sectorList.innerHTML = `
+        <div class="alert danger" style="margin: 16px 0;">
+          <strong>❌ 데이터 로딩 실패</strong><br>
+          <small>브라우저 콘솔(F12)을 확인하세요.</small><br>
+          <button onclick="location.reload()" style="margin-top:8px; padding:6px 12px; background:#f56565; color:white; border:none; border-radius:4px; cursor:pointer;">
+            새로고침
+          </button>
+        </div>
+      `;
+    }
+  }
+}
+
+// Run on page load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+</script>
+
+</body>
+</html>
