@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>차트 분석 | Decision Stream</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f1419 0%, #1a2332 100%);
+            color: #e8eaed;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+        }
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .search-bar input {
+            flex: 1;
+            padding: 12px 20px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 16px;
+        }
+        .search-bar button {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .card-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+        .chart-container {
+            position: relative;
+            height: 500px;
+        }
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        .stat-item {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #a0aec0;
+            margin-bottom: 5px;
+        }
+        .stat-value {
+            font-size: 20px;
+            font-weight: 600;
+        }
+        .stat-value.green { color: #48bb78; }
+        .stat-value.red { color: #f56565; }
+        .stat-value.yellow { color: #ecc94b; }
+        .recommendation {
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+        }
+        .recommendation.buy {
+            background: rgba(72, 187, 120, 0.2);
+            border: 2px solid #48bb78;
+            color: #48bb78;
+        }
+        .recommendation.sell {
+            background: rgba(245, 101, 101, 0.2);
+            border: 2px solid #f56565;
+            color: #f56565;
+        }
+        .recommendation.hold {
+            background: rgba(236, 201, 75, 0.2);
+            border: 2px solid #ecc94b;
+            color: #ecc94b;
+        }
+        .summary {
+            white-space: pre-wrap;
+            line-height: 1.8;
+            font-size: 14px;
+            color: #cbd5e0;
+        }
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 18px;
+            color: #a0aec0;
+        }
+        .patterns {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+        .pattern-badge {
+            padding: 8px 15px;
+            background: rgba(102, 126, 234, 0.2);
+            border: 1px solid #667eea;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 차트 분석 (기술적 분석)</h1>
+            <p>한국투자증권 API 연동 - 실시간 차트 & 보조지표</p>
+        </div>
+
+        <div class="search-bar">
+            <input type="text" id="ticker-input" placeholder="종목코드 입력 (예: 005930)" value="005930">
+            <button onclick="analyzeStock()">분석하기</button>
+        </div>
+
+        <div id="loading" class="loading" style="display:none;">
+            <p>차트 데이터를 불러오는 중입니다...</p>
+        </div>
+
+        <div id="result" style="display:none;">
+            <!-- 차트 & 분석 -->
+            <div class="grid">
+                <!-- 차트 -->
+                <div class="card">
+                    <div class="card-title" id="stock-name">삼성전자 (005930)</div>
+                    <div class="chart-container">
+                        <canvas id="priceChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 통계 -->
+                <div class="card">
+                    <div class="card-title">기술적 지표</div>
+                    <div class="stat-grid">
+                        <div class="stat-item">
+                            <div class="stat-label">현재가</div>
+                            <div class="stat-value" id="current-price">-</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">등락률</div>
+                            <div class="stat-value" id="change">-</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">RSI (14)</div>
+                            <div class="stat-value" id="rsi">-</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">MACD 신호</div>
+                            <div class="stat-value" id="macd">-</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">단기 추세</div>
+                            <div class="stat-value" id="short-trend">-</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">중기 추세</div>
+                            <div class="stat-value" id="mid-trend">-</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">지지선</div>
+                            <div class="stat-value" id="support">-</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">저항선</div>
+                            <div class="stat-value" id="resistance">-</div>
+                        </div>
+                    </div>
+
+                    <div id="patterns-container" style="margin-top:20px;">
+                        <div class="stat-label">캔들 패턴</div>
+                        <div class="patterns" id="patterns"></div>
+                    </div>
+
+                    <div class="recommendation" id="recommendation">
+                        분석 중...
+                    </div>
+                </div>
+            </div>
+
+            <!-- 분석 요약 -->
+            <div class="card">
+                <div class="card-title">📝 분석 요약</div>
+                <div class="summary" id="summary">-</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let chart = null;
+
+        async function analyzeStock() {
+            const ticker = document.getElementById('ticker-input').value.trim();
+            if (!ticker) {
+                alert('종목코드를 입력하세요.');
+                return;
+            }
+
+            // 로딩 표시
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+
+            try {
+                // 실제 API 호출
+                const response = await fetch(`http://127.0.0.1:8125/api/chart/${ticker}?key=ds-test-2026`);
+                
+                if (!response.ok) {
+                    throw new Error('데이터를 가져올 수 없습니다.');
+                }
+                
+                const data = await response.json();
+                
+                // 차트 및 UI 업데이트
+                updateUI(data);
+                
+            } catch (error) {
+                console.error('API Error:', error);
+                console.log('⚠️ 실제 API 연동 실패, Mock 데이터 사용');
+                
+                // 폴백: 목업 데이터 사용
+                const mockData = generateMockData(ticker);
+                updateUI(mockData);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function generateMockData(ticker) {
+            const dates = [];
+            const prices = [];
+            const ma5 = [];
+            const ma20 = [];
+            const ma60 = [];
+            
+            // 종목명 매핑
+            const stockNames = {
+                '005930': '삼성전자',
+                '012450': '한화에어로스페이스',
+                '207940': '삼성바이오로직스',
+                '068270': '셀트리온',
+                'JNJ': 'Johnson & Johnson',
+                'LMT': 'Lockheed Martin',
+                '079550': 'LIG넥스원',
+                '000660': 'SK하이닉스',
+                '042700': '한미반도체'
+            };
+            
+            const stockName = stockNames[ticker] || ticker;
+            const basePrice = ticker === '005930' ? 75000 : 
+                            ticker === '012450' ? 185000 :
+                            ticker === '207940' ? 850000 :
+                            ticker === 'JNJ' ? 215 :
+                            ticker === 'LMT' ? 445 : 100000;
+            let currentPrice = basePrice;
+            
+            for (let i = 0; i < 120; i++) {
+                const date = new Date();
+                date.setDate(date.getDate() - (120 - i));
+                dates.push(date.toISOString().split('T')[0]);
+                
+                currentPrice += (Math.random() - 0.5) * (basePrice * 0.02);
+                prices.push(currentPrice);
+                
+                if (i >= 4) ma5.push(prices.slice(i-4, i+1).reduce((a,b) => a+b) / 5);
+                else ma5.push(null);
+                
+                if (i >= 19) ma20.push(prices.slice(i-19, i+1).reduce((a,b) => a+b) / 20);
+                else ma20.push(null);
+                
+                if (i >= 59) ma60.push(prices.slice(i-59, i+1).reduce((a,b) => a+b) / 60);
+                else ma60.push(null);
+            }
+            
+            const currentPriceValue = prices[prices.length - 1];
+            const prevPrice = prices[prices.length - 2];
+            const change = ((currentPriceValue - prevPrice) / prevPrice * 100);
+            
+            return {
+                ticker: ticker,
+                name: stockName,
+                dates: dates,
+                prices: prices,
+                ma5: ma5,
+                ma20: ma20,
+                ma60: ma60,
+                indicators: {
+                    current_price: currentPriceValue,
+                    rsi: 55 + Math.random() * 20,
+                    macd: Math.random() > 0.5 ? '매수' : '중립',
+                    short_trend: '상승',
+                    mid_trend: '상승',
+                    support: Math.min(...prices.slice(-20)),
+                    resistance: Math.max(...prices.slice(-20)),
+                    patterns: ['Bullish Engulfing', 'Hammer']
+                },
+                signal: 'BUY',
+                summary: `${stockName} Mock 차트 분석\n\n단기 추세: 상승\n중기 추세: 상승\nRSI: 중립권\nMACD: 매수 신호\n\n현재 상승 추세를 보이고 있으며, 기술적 지표상 매수 고려 가능`
+            };
+        }
+
+        function updateUI(data) {
+            document.getElementById('result').style.display = 'block';
+            
+            // 미국 주식 판별
+            const isUS = data.ticker.length <= 4 && !/^\d+$/.test(data.ticker);
+            const currencySymbol = isUS ? '$' : '₩';
+            
+            // 종목명 (데이터에 없으면 종목코드 사용)
+            const stockName = data.name || data.ticker;
+            document.getElementById('stock-name').textContent = `${stockName} (${data.ticker})`;
+            
+            // 현재가 및 변동률
+            const currentPrice = data.indicators.current_price || data.prices[data.prices.length - 1];
+            const prevPrice = data.prices[data.prices.length - 2];
+            const change = ((currentPrice - prevPrice) / prevPrice * 100);
+            
+            const priceDisplay = isUS ? `${currencySymbol}${currentPrice.toFixed(2)}` : `${currencySymbol}${Math.round(currentPrice).toLocaleString()}`;
+            document.getElementById('current-price').textContent = priceDisplay;
+            document.getElementById('change').textContent = `${change > 0 ? '+' : ''}${change.toFixed(2)}%`;
+            document.getElementById('change').className = `stat-value ${change > 0 ? 'green' : 'red'}`;
+            
+            // RSI
+            document.getElementById('rsi').textContent = data.indicators.rsi.toFixed(1);
+            document.getElementById('rsi').className = data.indicators.rsi > 70 ? 'stat-value red' : 
+                                                        data.indicators.rsi < 30 ? 'stat-value green' : 
+                                                        'stat-value yellow';
+            
+            // MACD
+            document.getElementById('macd').textContent = data.indicators.macd;
+            document.getElementById('macd').className = data.indicators.macd === '매수' ? 'stat-value green' : 
+                                                        data.indicators.macd === '매도' ? 'stat-value red' : 
+                                                        'stat-value yellow';
+            
+            // 단기 추세
+            document.getElementById('short-trend').textContent = data.indicators.short_trend;
+            document.getElementById('short-trend').className = data.indicators.short_trend === '상승' ? 'stat-value green' : 
+                                                               data.indicators.short_trend === '하락' ? 'stat-value red' : 
+                                                               'stat-value yellow';
+            
+            // 중기 추세
+            document.getElementById('mid-trend').textContent = data.indicators.mid_trend;
+            document.getElementById('mid-trend').className = data.indicators.mid_trend === '상승' ? 'stat-value green' : 
+                                                            data.indicators.mid_trend === '하락' ? 'stat-value red' : 
+                                                            'stat-value yellow';
+            
+            // 지지선 / 저항선
+            const supportDisplay = isUS ? `${currencySymbol}${data.indicators.support.toFixed(2)}` : `${currencySymbol}${Math.round(data.indicators.support).toLocaleString()}`;
+            const resistanceDisplay = isUS ? `${currencySymbol}${data.indicators.resistance.toFixed(2)}` : `${currencySymbol}${Math.round(data.indicators.resistance).toLocaleString()}`;
+            document.getElementById('support').textContent = supportDisplay;
+            document.getElementById('resistance').textContent = resistanceDisplay;
+            
+            // 캔들 패턴
+            const patternsContainer = document.getElementById('patterns');
+            if (data.indicators.patterns && data.indicators.patterns.length > 0) {
+                patternsContainer.innerHTML = data.indicators.patterns.map(p => 
+                    `<span class="pattern-badge">${p}</span>`
+                ).join('');
+            } else {
+                patternsContainer.innerHTML = '<span class="pattern-badge">패턴 없음</span>';
+            }
+            
+            // 추천
+            const rec = document.getElementById('recommendation');
+            rec.textContent = data.signal === 'BUY' ? '✅ 매수' : 
+                             data.signal === 'SELL' ? '🚫 매도' : 
+                             data.signal === 'HOLD' ? '⏸️ 관망' :
+                             '⏸️ 중립';
+            rec.className = `recommendation ${(data.signal || 'neutral').toLowerCase()}`;
+            
+            // 요약
+            document.getElementById('summary').textContent = data.summary;
+            
+            // 차트 그리기
+            drawChart(data);
+        }
+
+        function drawChart(data) {
+            const ctx = document.getElementById('priceChart').getContext('2d');
+            
+            // 미국 주식 판별
+            const isUS = data.ticker.length <= 4 && !/^\d+$/.test(data.ticker);
+            const currencySymbol = isUS ? '$' : '₩';
+            
+            if (chart) {
+                chart.destroy();
+            }
+            
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.dates,
+                    datasets: [
+                        {
+                            label: '종가',
+                            data: data.prices,
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'MA5',
+                            data: data.ma5,
+                            borderColor: '#48bb78',
+                            borderWidth: 1,
+                            pointRadius: 0,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'MA20',
+                            data: data.ma20,
+                            borderColor: '#f6ad55',
+                            borderWidth: 1,
+                            pointRadius: 0,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'MA60',
+                            data: data.ma60,
+                            borderColor: '#fc8181',
+                            borderWidth: 1,
+                            pointRadius: 0,
+                            tension: 0.1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#e8eaed'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        const formattedValue = isUS 
+                                            ? currencySymbol + context.parsed.y.toFixed(2)
+                                            : currencySymbol + Math.round(context.parsed.y).toLocaleString();
+                                        label += formattedValue;
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                color: '#e8eaed',
+                                callback: function(value) {
+                                    return isUS 
+                                        ? currencySymbol + value.toFixed(2)
+                                        : currencySymbol + Math.round(value).toLocaleString();
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(255,255,255,0.1)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#e8eaed'
+                            },
+                            grid: {
+                                color: 'rgba(255,255,255,0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 페이지 로드 시 URL 파라미터 확인하여 자동 분석
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const ticker = urlParams.get('ticker');
+            
+            if (ticker) {
+                // URL에서 받은 종목 코드 입력
+                document.getElementById('ticker-input').value = ticker;
+            } else {
+                // 기본값: 삼성전자
+                document.getElementById('ticker-input').value = '005930';
+            }
+            
+            // 자동으로 분석 시작
+            analyzeStock();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>종목 선택 테스트</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #2a2a2a;
+            padding: 30px;
+            border-radius: 10px;
+        }
+        h1 {
+            color: #667eea;
+        }
+        select, input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #444;
+            background: #333;
+            color: #fff;
+            font-size: 16px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: none;
+            background: #667eea;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        .log {
+            margin-top: 20px;
+            padding: 15px;
+            background: #1a1a1a;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .log-item {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #667eea;
+            padding-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 종목 선택 테스트</h1>
+        
+        <label>섹터 선택:</label>
+        <select id="sector" onchange="handleSectorChange()">
+            <option value="">-- 섹터 선택 --</option>
+            <option value="방산">방산</option>
+            <option value="반도체">반도체</option>
+        </select>
+        
+        <label>종목 선택:</label>
+        <select id="stock" onchange="handleStockChange()">
+            <option value="">-- 먼저 섹터를 선택하세요 --</option>
+        </select>
+        
+        <label>현재 주가:</label>
+        <input type="number" id="current-price" placeholder="자동 입력됩니다" readonly>
+        
+        <button onclick="openChart()">📊 차트 분석 열기</button>
+        <button onclick="clearLog()">🗑️ 로그 지우기</button>
+        
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        const STOCK_DATABASE = {
+            '방산': [
+                { ticker: 'LMT', name: 'Lockheed Martin', price: 445.50 },
+                { ticker: '012450', name: '한화에어로스페이스', price: 185000 },
+                { ticker: '079550', name: 'LIG넥스원', price: 95000 }
+            ],
+            '반도체': [
+                { ticker: '005930', name: '삼성전자', price: 75000 },
+                { ticker: '000660', name: 'SK하이닉스', price: 142000 }
+            ]
+        };
+
+        function log(message, color = '#667eea') {
+            const logDiv = document.getElementById('log');
+            const item = document.createElement('div');
+            item.className = 'log-item';
+            item.style.borderLeftColor = color;
+            item.textContent = new Date().toLocaleTimeString() + ' - ' + message;
+            logDiv.insertBefore(item, logDiv.firstChild);
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        function handleSectorChange() {
+            const sector = document.getElementById('sector').value;
+            const stockSelect = document.getElementById('stock');
+            const priceInput = document.getElementById('current-price');
+            
+            log('섹터 선택: ' + sector, '#48bb78');
+            
+            stockSelect.innerHTML = '<option value="">-- 종목 선택 --</option>';
+            priceInput.value = '';
+            
+            if (sector && STOCK_DATABASE[sector]) {
+                STOCK_DATABASE[sector].forEach(stock => {
+                    const option = document.createElement('option');
+                    option.value = stock.ticker;
+                    option.textContent = `${stock.name} (${stock.ticker})`;
+                    option.dataset.price = stock.price;
+                    option.dataset.name = stock.name;
+                    stockSelect.appendChild(option);
+                });
+                log(`${STOCK_DATABASE[sector].length}개 종목 로드됨`, '#48bb78');
+            }
+        }
+
+        function handleStockChange() {
+            const stockSelect = document.getElementById('stock');
+            const selectedOption = stockSelect.options[stockSelect.selectedIndex];
+            const priceInput = document.getElementById('current-price');
+            
+            log('handleStockChange 호출됨', '#667eea');
+            
+            if (!stockSelect.value) {
+                log('종목 선택 안됨', '#fc8181');
+                priceInput.value = '';
+                return;
+            }
+            
+            log('선택된 종목: ' + stockSelect.value, '#48bb78');
+            log('Dataset price: ' + selectedOption?.dataset?.price, '#667eea');
+            
+            if (selectedOption && selectedOption.dataset && selectedOption.dataset.price) {
+                const price = selectedOption.dataset.price;
+                priceInput.value = price;
+                log('✅ 주가 자동 입력: ' + price, '#48bb78');
+            } else {
+                log('❌ Dataset에 가격 정보 없음', '#fc8181');
+                priceInput.value = '';
+            }
+        }
+
+        function openChart() {
+            const ticker = document.getElementById('stock').value;
+            
+            if (!ticker) {
+                alert('먼저 종목을 선택하세요.');
+                log('❌ 종목 미선택', '#fc8181');
+                return;
+            }
+            
+            const chartUrl = `chart_analysis.html?ticker=${ticker}`;
+            log('차트 URL: ' + chartUrl, '#667eea');
+            
+            try {
+                const newWindow = window.open(chartUrl, '_blank');
+                if (newWindow) {
+                    log('✅ 차트 창 열림', '#48bb78');
+                } else {
+                    log('❌ 팝업 차단됨', '#fc8181');
+                    alert('팝업이 차단되었습니다. 브라우저 설정을 확인하세요.');
+                }
+            } catch (error) {
+                log('❌ 에러: ' + error.message, '#fc8181');
+            }
+        }
+    </script>
+</body>
+</html>
