@@ -95,8 +95,8 @@ decision-stream/
     ├── runtime.txt                 # Python 버전
     │
     └── services/                   # API 서비스 모듈
-        ├── korea_investment_api.py # 한국투자증권 API
-        ├── nh_stock_api.py         # NH투자증권 API
+        ├── nh_investment_api.py    # NH투자증권 API
+        ├── nh_stock_api.py         # NH투자증권 API (보조)
         ├── krx_stock_api.py        # KRX API
         └── us_stock_service.py     # 미국 주식 (Yahoo Finance)
 ```
@@ -111,13 +111,10 @@ decision-stream/
 # KRX API
 KRX_API_KEY=your_krx_api_key
 
-# NH투자증권 API
-NH_API_KEY=your_nh_api_key
-
-# 한국투자증권 API
-KIS_APP_KEY=your_kis_app_key
-KIS_APP_SECRET=your_kis_app_secret
-KIS_USE_MOCK=false
+# NH투자증권 API (주 사용)
+NH_APP_KEY=your_nh_app_key
+NH_APP_SECRET=your_nh_app_secret
+NH_USE_MOCK=false
 
 # Alpha Vantage (미국 주식)
 ALPHA_VANTAGE_KEY=your_alpha_vantage_key

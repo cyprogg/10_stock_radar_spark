@@ -1,5 +1,6 @@
 """
 매일 오후 6시 주가 자동 업데이트 스케줄러
+NH투자증권 API 사용
 """
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -11,7 +12,7 @@ import sys
 # 상위 디렉토리의 services 모듈 import
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from services.korea_investment_api import KoreaInvestmentAPI
+from services.nh_investment_api import NHInvestmentAPI
 from services.nh_stock_api import NHStockAPI
 from services.krx_stock_api import KRXStockAPI
 from services.us_stock_service import USStockService
@@ -56,22 +57,22 @@ def init_services():
     """API 서비스 초기화"""
     global kr_api, us_service
     
-    # 한국 주식: KRX API 우선 시도
+    # 한국 주식: NH투자증권 API 우선
     try:
-        kr_api = KRXStockAPI()
-        print("✅ 한국거래소(KRX) API 초기화 완료")
+        kr_api = NHInvestmentAPI()
+        print("✅ NH투자증권 API 초기화 완료")
     except Exception as e:
-        print(f"⚠️  KRX API 초기화 실패: {e}")
-        # NH투자증권 API로 fallback
+        print(f"⚠️  NH API 초기화 실패: {e}")
+        # KRX API로 fallback
         try:
-            kr_api = NHStockAPI()
-            print("✅ NH투자증권 API 초기화 완료 (fallback)")
+            kr_api = KRXStockAPI()
+            print("✅ 한국거래소(KRX) API 초기화 완료 (fallback)")
         except Exception as e2:
-            print(f"⚠️  NH API 초기화 실패: {e2}")
-            # 한국투자증권 API로 최종 fallback
+            print(f"⚠️  KRX API 초기화 실패: {e2}")
+            # NH Stock API로 최종 fallback
             try:
-                kr_api = KoreaInvestmentAPI()
-                print("✅ 한국투자증권 API 초기화 완료 (fallback)")
+                kr_api = NHStockAPI()
+                print("✅ NH Stock API 초기화 완료 (최종 fallback)")
             except Exception as e3:
                 print(f"⚠️  모든 한국 API 초기화 실패")
                 kr_api = None

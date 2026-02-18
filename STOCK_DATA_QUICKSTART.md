@@ -2,7 +2,7 @@
 
 ## ✅ 준비 완료 사항
 
-1. ✅ **한국 주식 데이터 수집 서비스** (`backend/services/korea_investment_api.py`)
+1. ✅ **한국 주식 데이터 수집 서비스** (`backend/services/nh_investment_api.py`)
 2. ✅ **미국 주식 데이터 수집 서비스** (`backend/services/us_stock_service.py`)
 3. ✅ **상세 가이드 문서** (`STOCK_DATA_COLLECTION_GUIDE.md`)
 4. ✅ **requirements.txt 업데이트**
@@ -36,28 +36,28 @@ python services/us_stock_service.py
 
 ---
 
-### Step 2: 한국투자증권 API 신청 (무료, 5분 소요)
+### Step 2: NH투자증권 API 신청 (무료)
 
 1. **회원가입**
-   - https://apiportal.koreainvestment.com/ 접속
-   - 회원가입 (증권 계좌 불필요)
+   - https://securities.nhqv.com 접속
+   - 회원가입 및 API 신청
 
 2. **API 신청**
-   - 로그인 → 상단 "API 신청" 클릭
+   - 로그인 → "API 신청" 메뉴
    - "앱 등록" → 앱 이름 입력 (예: Decision Stream)
    - **앱 키(App Key)** 및 **앱 시크릿(App Secret)** 발급
 
 3. **환경변수 설정**
 ```bash
 # backend/.env 파일 생성
-KIS_APP_KEY=발급받은_앱_키_입력
-KIS_APP_SECRET=발급받은_앱_시크릿_입력
+NH_APP_KEY=발급받은_앱_키_입력
+NH_APP_SECRET=발급받은_앱_시크릿_입력
 ```
 
 4. **테스트**
 ```bash
 cd backend
-python services/korea_investment_api.py
+python services/nh_investment_api.py
 ```
 
 **결과:**
@@ -77,7 +77,7 @@ python services/korea_investment_api.py
 
 | API | 신청 링크 | 무료 한도 | 실시간 |
 |-----|-----------|----------|--------|
-| **한국투자증권** | https://apiportal.koreainvestment.com/ | 500회/일 | ✅ |
+| **NH투자증권** | https://securities.nhqv.com | 요청시 확인 | ✅ |
 | **yfinance** | 설치만 하면 됨 | 무제한 | ⚠️ (15분 지연) |
 | **Alpha Vantage** | https://www.alphavantage.co/support/#api-key | 25회/일 | ✅ |
 | **IEX Cloud** | https://iexcloud.io/console/ | 50,000/월 | ✅ |
@@ -91,11 +91,11 @@ python services/korea_investment_api.py
 ```python
 # backend/server.py
 
-from services.korea_investment_api import KoreaInvestmentAPI
+from services.nh_investment_api import NHInvestmentAPI
 from services.us_stock_service import USStockService
 
 # 인스턴스 생성
-kr_api = KoreaInvestmentAPI()
+kr_api = NHInvestmentAPI()
 us_service = USStockService()
 
 @app.get("/api/price/{ticker}")
@@ -164,8 +164,8 @@ document.getElementById('stock').addEventListener('change', function() {
 ### 시나리오 1: 한국 주식 (한화에어로스페이스)
 
 ```bash
-# backend/services/korea_investment_api.py 실행
-python services/korea_investment_api.py
+# backend/services/nh_investment_api.py 실행
+python services/nh_investment_api.py
 ```
 
 **예상 결과:**
@@ -209,8 +209,8 @@ for ticker, data in prices.items():
 
 ```bash
 # backend/.env
-KIS_APP_KEY=your_korea_investment_app_key
-KIS_APP_SECRET=your_korea_investment_secret
+NH_APP_KEY=your_nh_app_key
+NH_APP_SECRET=your_nh_app_secret
 ALPHA_VANTAGE_KEY=your_alpha_vantage_key  # 선택사항
 ```
 
@@ -291,15 +291,15 @@ pip install -r requirements.txt
 # 2. 미국 주식 테스트 (API 키 불필요)
 python services/us_stock_service.py
 
-# 3. 한국투자증권 API 신청 (5분)
-# https://apiportal.koreainvestment.com/
+# 3. NH투자증권 API 신청
+# https://securities.nhqv.com
 
 # 4. 환경변수 설정
-echo "KIS_APP_KEY=발급받은_키" > .env
-echo "KIS_APP_SECRET=발급받은_시크릿" >> .env
+echo "NH_APP_KEY=발급받은_키" > .env
+echo "NH_APP_SECRET=발급받은_시크릿" >> .env
 
 # 5. 한국 주식 테스트
-python services/korea_investment_api.py
+python services/nh_investment_api.py
 ```
 
 ---
@@ -307,7 +307,7 @@ python services/korea_investment_api.py
 ## 📚 추가 학습 자료
 
 - **상세 가이드**: STOCK_DATA_COLLECTION_GUIDE.md
-- **한국투자증권 API 문서**: https://apiportal.koreainvestment.com/apiservice
+- **NH투자증권 API 문서**: https://securities.nhqv.com
 - **yfinance 문서**: https://github.com/ranaroussi/yfinance
 - **Alpha Vantage 문서**: https://www.alphavantage.co/documentation/
 

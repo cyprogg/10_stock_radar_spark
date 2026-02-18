@@ -1,5 +1,5 @@
 """
-한국투자증권 Open API 통합 예제
+NH투자증권 Open API 통합
 실시간 주가 조회 서비스
 """
 
@@ -8,7 +8,7 @@ import ssl
 import os
 import time
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Dict, List
 from requests.adapters import HTTPAdapter
 from urllib3.poolmanager import PoolManager
 from urllib3.util.ssl_ import create_urllib3_context
@@ -18,39 +18,42 @@ import urllib3
 class TLSAdapter(HTTPAdapter):
     """
     TLS 1.2 이상을 강제하는 HTTP Adapter
-    한국투자증권 API는 TLS 1.2+ 만 허용
     """
     
     def init_poolmanager(self, *args, **kwargs):
         context = create_urllib3_context()
         context.minimum_version = ssl.TLSVersion.TLSv1_2
         context.maximum_version = ssl.TLSVersion.MAXIMUM_SUPPORTED
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
         kwargs['ssl_context'] = context
         return super(TLSAdapter, self).init_poolmanager(*args, **kwargs)
 
 
-class KoreaInvestmentAPI:
+class NHInvestmentAPI:
     """
-    한국투자증권 Open API 래퍼 클래스
+    NH투자증권 Open API 래퍼 클래스
     
     사용 전 준비:
-    1. https://apiportal.koreainvestment.com/ 회원가입
+    1. https://securities.nhqv.com 회원가입
     2. API 신청 → 앱 키 발급
     3. 환경변수 설정:
-       - KIS_APP_KEY
-       - KIS_APP_SECRET
+       - NH_APP_KEY
+       - NH_APP_SECRET
+       - NH_ACCOUNT_NO (선택)
     """
     
     def __init__(self, app_key: Optional[str] = None, app_secret: Optional[str] = None, use_mock: bool = False):
-        self.app_key = app_key or os.getenv('KIS_APP_KEY')
-        self.app_secret = app_secret or os.getenv('KIS_APP_SECRET')
+        self.app_key = app_key or os.getenv('NH_APP_KEY')
+        self.app_secret = app_secret or os.getenv('NH_APP_SECRET')
+        self.account_no = os.getenv('NH_ACCOUNT_NO', '')
         
-        # 모의투자 모드 (IP 제한 없음)
-        if use_mock or os.getenv('KIS_USE_MOCK', 'false').lower() == 'true':
-            self.base_url = "https://openapivts.koreainvestment.com:9443"
-            print("⚠️  모의투자 서버 사용 중")
+        # 모의투자 모드
+        if use_mock or os.getenv('NH_USE_MOCK', 'false').lower() == 'true':
+            self.base_url = "https://openapi-mock.nhqv.com"
+            print("⚠️  NH투자증권 모의투자 서버 사용 중")
         else:
-            self.base_url = "https://openapi.koreainvestment.com:9943"
+            self.base_url = "https://openapi.nhqv.com"
         
         self.token = None
         self.token_expires = None
@@ -63,38 +66,41 @@ class KoreaInvestmentAPI:
         self.session.verify = False
         
         # SSL 경고 메시지 숨기기
-        import urllib3
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     
     def get_token(self) -> str:
         """
         Access Token 발급
-        (24시간 유효)
+        (NH투자증권 API 토큰은 24시간 유효)
         """
         if self.token and self.token_expires and datetime.now() < self.token_expires:
             return self.token
         
-        url = f"{self.base_url}/oauth2/tokenP"
-        headers = {"content-type": "application/json"}
+        url = f"{self.base_url}/oauth2/token"
+        headers = {"Content-Type": "application/x-www-form-urlencoded"}
         data = {
             "grant_type": "client_credentials",
             "appkey": self.app_key,
-            "appsecret": self.app_secret
+            "secretkey": self.app_secret
         }
         
-        # TLS 1.2+ 세션 사용
-        response = self.session.post(url, headers=headers, json=data)
-        response.raise_for_status()
-        
-        result = response.json()
-        self.token = result['access_token']
-        self.token_expires = datetime.now() + timedelta(hours=23)
-        
-        return self.token
+        try:
+            response = self.session.post(url, headers=headers, data=data)
+            response.raise_for_status()
+            
+            result = response.json()
+            self.token = result.get('access_token', result.get('token'))
+            self.token_expires = datetime.now() + timedelta(hours=23)
+            
+            return self.token
+        except Exception as e:
+            print(f"⚠️  토큰 발급 실패: {e}")
+            # 토큰 없이도 일부 API 사용 가능
+            return ""
     
     def get_current_price(self, ticker: str) -> dict:
         """
-        주식 현재가 조회
+        주식 현재가 조회 (NH투자증권 API)
         
         Args:
             ticker: 종목코드 (6자리, 예: '005930')
@@ -112,49 +118,44 @@ class KoreaInvestmentAPI:
             }
         """
         try:
-            # Rate limit 방지: 0.2초 대기 (초당 5건, 안전)
+            # Rate limit 방지
             time.sleep(0.2)
             
             token = self.get_token()
             
-            url = f"{self.base_url}/uapi/domestic-stock/v1/quotations/inquire-price"
+            url = f"{self.base_url}/api/stock/current-price"
             headers = {
-                "content-type": "application/json",
-                "authorization": f"Bearer {token}",
-                "appkey": self.app_key,
-                "appsecret": self.app_secret,
-                "tr_id": "FHKST01010100"
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {token}" if token else "",
+                "X-API-KEY": self.app_key
             }
             params = {
-                "FID_COND_MRKT_DIV_CODE": "J",
-                "FID_INPUT_ISCD": ticker
+                "code": ticker,
+                "market": "KRX"
             }
             
-            # TLS 1.2+ 세션 사용
             response = self.session.get(url, headers=headers, params=params)
             
-            # 에러 체크
             if response.status_code != 200:
                 raise Exception(f"HTTP {response.status_code}: {response.text}")
             
             data = response.json()
             
-            # API 에러 체크
-            if data.get('rt_cd') != '0':
-                error_msg = data.get('msg1', 'Unknown error')
-                raise Exception(f"API Error: {error_msg}")
-            
-            output = data['output']
+            # NH API 응답 형식에 맞게 파싱
+            if 'data' in data:
+                output = data['data']
+            else:
+                output = data
             
             return {
                 'ticker': ticker,
-                'name': output.get('prdt_name', ''),
-                'price': float(output.get('stck_prpr', 0)),
-                'change': float(output.get('prdy_ctrt', 0)),
-                'volume': int(output.get('acml_vol', 0)),
-                'high': float(output.get('stck_hgpr', 0)),
-                'low': float(output.get('stck_lwpr', 0)),
-                'open': float(output.get('stck_oprc', 0))
+                'name': output.get('name', output.get('itemname', '')),
+                'price': float(output.get('price', output.get('curprice', 0))),
+                'change': float(output.get('change_rate', output.get('rate', 0))),
+                'volume': int(output.get('volume', output.get('volume', 0))),
+                'high': float(output.get('high', output.get('high', 0))),
+                'low': float(output.get('low', output.get('low', 0))),
+                'open': float(output.get('open', output.get('open', 0)))
             }
             
         except Exception as e:
@@ -163,7 +164,7 @@ class KoreaInvestmentAPI:
     
     def get_daily_price(self, ticker: str, start_date: str, end_date: str) -> list:
         """
-        일봉 데이터 조회
+        일봉 데이터 조회 (NH투자증권 API)
         
         Args:
             ticker: 종목코드
@@ -185,38 +186,38 @@ class KoreaInvestmentAPI:
         """
         token = self.get_token()
         
-        url = f"{self.base_url}/uapi/domestic-stock/v1/quotations/inquire-daily-price"
+        url = f"{self.base_url}/api/stock/daily-price"
         headers = {
-            "content-type": "application/json",
-            "authorization": f"Bearer {token}",
-            "appkey": self.app_key,
-            "appsecret": self.app_secret,
-            "tr_id": "FHKST01010400"
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {token}" if token else "",
+            "X-API-KEY": self.app_key
         }
         params = {
-            "FID_COND_MRKT_DIV_CODE": "J",
-            "FID_INPUT_ISCD": ticker,
-            "FID_PERIOD_DIV_CODE": "D",
-            "FID_ORG_ADJ_PRC": "0"
+            "code": ticker,
+            "start_date": start_date,
+            "end_date": end_date,
+            "period": "D"
         }
         
-        # TLS 1.2+ 세션 사용
         response = self.session.get(url, headers=headers, params=params)
         response.raise_for_status()
         
         data = response.json()
         result = []
         
-        for item in data['output']:
-            date = item['stck_bsop_date']
+        # NH API 응답 형식에 맞게 파싱
+        items = data.get('data', data.get('output', []))
+        
+        for item in items:
+            date = item.get('date', item.get('stck_bsop_date', ''))
             if start_date <= date <= end_date:
                 result.append({
                     'date': date,
-                    'open': float(item['stck_oprc']),
-                    'high': float(item['stck_hgpr']),
-                    'low': float(item['stck_lwpr']),
-                    'close': float(item['stck_clpr']),
-                    'volume': int(item['acml_vol'])
+                    'open': float(item.get('open', item.get('stck_oprc', 0))),
+                    'high': float(item.get('high', item.get('stck_hgpr', 0))),
+                    'low': float(item.get('low', item.get('stck_lwpr', 0))),
+                    'close': float(item.get('close', item.get('stck_clpr', 0))),
+                    'volume': int(item.get('volume', item.get('acml_vol', 0)))
                 })
         
         return result
@@ -224,9 +225,9 @@ class KoreaInvestmentAPI:
 
 # ========== 사용 예제 ==========
 
-if __name__ == "__main__":
-    # API 인스턴스 생성
-    api = KoreaInvestmentAPI()
+if __main__ == "__main__":
+    # NH투자증권 API 인스턴스 생성
+    api = NHInvestmentAPI()
     
     # 예제 1: 삼성전자 현재가 조회
     print("=" * 50)

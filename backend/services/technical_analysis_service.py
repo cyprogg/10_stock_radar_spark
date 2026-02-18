@@ -1,13 +1,14 @@
 """
 한국 주식 기술적 분석 서비스
 차트 패턴, 보조지표, 캔들 패턴 분석
+NH투자증권 API 사용
 """
 
 import pandas as pd
 import numpy as np
 from typing import List, Dict, Optional
 from datetime import datetime, timedelta
-from korea_investment_api import KoreaInvestmentAPI
+from .nh_investment_api import NHInvestmentAPI
 
 class TechnicalAnalysisService:
     """
@@ -24,7 +25,7 @@ class TechnicalAnalysisService:
     """
     
     def __init__(self):
-        self.api = KoreaInvestmentAPI()
+        self.api = NHInvestmentAPI()
     
     def get_chart_data(self, ticker: str, days: int = 120) -> pd.DataFrame:
         """

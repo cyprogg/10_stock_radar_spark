@@ -190,7 +190,7 @@ decision-stream/
 │   ├── server_v2.py             # 간소화 버전
 │   ├── scheduler.py             # 데이터 수집 스케줄러
 │   ├── services/
-│   │   ├── korea_investment_api.py    # 한국투자증권 API
+│   │   ├── nh_investment_api.py       # NH투자증권 API
 │   │   ├── us_stock_service.py        # 미국 주식 서비스
 │   │   └── technical_analysis_service.py  # 기술적 분석
 │   ├── agents/                  # ⭐ AI Agent 시스템
