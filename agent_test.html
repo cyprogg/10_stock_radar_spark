@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Agent 테스트 | Decision Stream</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .controls {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 10px;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .btn-info {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .results {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: none;
+        }
+        
+        .results.show {
+            display: block;
+        }
+        
+        .result-section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .result-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .market-state {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .market-state.risk-on {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .market-state.risk-off {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .sector-item, .stock-item {
+            padding: 15px;
+            background: white;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border-left: 3px solid #667eea;
+        }
+        
+        .stock-item.leader {
+            border-left-color: #28a745;
+        }
+        
+        .stock-item.follower {
+            border-left-color: #ffc107;
+        }
+        
+        .trade-plan {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .trade-plan-item {
+            background: #e9ecef;
+            padding: 12px;
+            border-radius: 5px;
+        }
+        
+        .trade-plan-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .trade-plan-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .counter-argument {
+            padding: 10px;
+            background: #fff3cd;
+            border-left: 3px solid #ffc107;
+            margin-bottom: 8px;
+            border-radius: 4px;
+        }
+        
+        .counter-argument.high {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #dc3545;
+            margin-bottom: 15px;
+        }
+        
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 AI Agent 테스트 페이지</h1>
+            <p class="subtitle">Decision Stream - 5개 AI Agent 통합 시스템</p>
+        </div>
+        
+        <div class="controls">
+            <h2 style="margin-bottom: 20px;">분석 설정</h2>
+            
+            <div class="control-group">
+                <label>종목 코드 (쉼표로 구분)</label>
+                <input type="text" id="tickers" value="005930,000660,012450" placeholder="예: 005930,000660,012450">
+            </div>
+            
+            <div class="control-group">
+                <label>투자 기간</label>
+                <select id="period">
+                    <option value="단기" selected>단기</option>
+                    <option value="중기">중기</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label>리스크 성향</label>
+                <select id="risk_profile">
+                    <option value="보수">보수</option>
+                    <option value="중립" selected>중립</option>
+                    <option value="공격">공격</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label>계좌 크기 (원, 선택)</label>
+                <input type="number" id="account_size" value="10000000" placeholder="예: 10000000">
+            </div>
+            
+            <button onclick="runFullAnalysis()">🚀 전체 파이프라인 실행</button>
+            <button class="btn-secondary" onclick="runQuickAnalysis()">⚡ 빠른 분석 (첫 번째 종목)</button>
+            <button class="btn-info" onclick="getMarketRegime()">🌍 시장 상태만 조회</button>
+        </div>
+        
+        <div id="results" class="results"></div>
+    </div>
+    
+    <script>
+        const API_KEY = 'ds-test-2026';
+        const BASE_URL = 'http://localhost:8126';  // 서버 포트 변경
+        
+        // 가격 포맷팅 함수 (통화에 따라 다르게 표시)
+        function formatPrice(price, currency) {
+            // 디버깅용 - 값이 없을 경우 처리
+            if (typeof price === 'undefined' || price === null) {
+                console.warn('formatPrice: price is undefined/null');
+                return 'N/A';
+            }
+            
+            // currency가 없으면 기본값 설정
+            if (!currency || currency === 'undefined') {
+                console.warn('formatPrice: currency is undefined, defaulting to KRW');
+                currency = 'KRW';
+            }
+            
+            const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+            
+            if (currency === 'USD') {
+                return `$${numPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            } else {
+                return `${Math.round(numPrice).toLocaleString('ko-KR')}원`;
+            }
+        }
+        
+        function showLoading() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.className = 'results show';
+            resultsDiv.innerHTML = '<div class="loading">⏳ 분석 중...</div>';
+        }
+        
+        function showError(error) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.className = 'results show';
+            resultsDiv.innerHTML = `
+                <div class="error">
+                    <strong>❌ 오류 발생:</strong><br>
+                    ${error}
+                </div>
+            `;
+        }
+        
+        async function runFullAnalysis() {
+            showLoading();
+            
+            const tickers = document.getElementById('tickers').value.split(',').map(t => t.trim());
+            const period = document.getElementById('period').value;
+            const risk_profile = document.getElementById('risk_profile').value;
+            const account_size = parseInt(document.getElementById('account_size').value) || 0;
+            
+            try {
+                const response = await fetch(`${BASE_URL}/api/agent/analyze?key=${API_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tickers,
+                        period,
+                        risk_profile,
+                        account_size
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                displayFullResults(result);
+                
+            } catch (error) {
+                showError(error.message);
+                console.error('Error:', error);
+            }
+        }
+        
+        async function runQuickAnalysis() {
+            showLoading();
+            
+            const tickers = document.getElementById('tickers').value.split(',').map(t => t.trim());
+            const ticker = tickers[0];
+            const period = document.getElementById('period').value;
+            const risk_profile = document.getElementById('risk_profile').value;
+            const account_size = parseInt(document.getElementById('account_size').value) || 0;
+            
+            try {
+                const response = await fetch(`${BASE_URL}/api/agent/quick-analyze?key=${API_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ticker,
+                        period,
+                        risk_profile,
+                        account_size
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                displayQuickResults(result);
+                
+            } catch (error) {
+                showError(error.message);
+                console.error('Error:', error);
+            }
+        }
+        
+        async function getMarketRegime() {
+            showLoading();
+            
+            try {
+                const response = await fetch(`${BASE_URL}/api/agent/market-regime?key=${API_KEY}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                displayMarketRegime(result);
+                
+            } catch (error) {
+                showError(error.message);
+                console.error('Error:', error);
+            }
+        }
+        
+        function displayFullResults(result) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.className = 'results show';
+            
+            // 디버깅: currency 필드 확인
+            console.log('=== Full Analysis Result ===');
+            console.log('Recommendations:', result.recommendations);
+            if (result.recommendations && result.recommendations.length > 0) {
+                result.recommendations.forEach((rec, i) => {
+                    console.log(`[${i}] ${rec.name} - currency: ${rec.currency}, trade_plan.currency: ${rec.trade_plan?.currency}`);
+                });
+            }
+            
+            const mr = result.market_regime;
+            const summary = result.summary;
+            
+            let html = `
+                <div class="result-section">
+                    <h2>📊 전체 분석 요약</h2>
+                    <p><strong>시장 상태:</strong> <span class="market-state ${mr.state.toLowerCase().replace('_', '-')}">${mr.state}</span> (${summary.market_score})</p>
+                    <p><strong>Playbook:</strong> ${summary.playbook}</p>
+                    <p><strong>상위 섹터:</strong> ${summary.top_sectors.join(', ')}</p>
+                    <p><strong>종목 현황:</strong> 리더 ${summary.leaders_count}개, 팔로워 ${summary.followers_count}개, No-Go ${summary.nogo_count}개</p>
+                </div>
+                
+                <div class="result-section">
+                    <h2>🌍 Market Regime Analyst</h2>
+                    <p><strong>점수:</strong> ${mr.score}/${mr.max_score}</p>
+                    <p><strong>신뢰도:</strong> ${mr.confidence}%</p>
+                    <div style="margin-top: 15px;">
+                        <strong>긍정 신호:</strong>
+                        <ul style="margin-left: 20px; margin-top: 5px;">
+                            ${mr.signals.positive.map(s => `<li>✓ ${s}</li>`).join('')}
+                        </ul>
+                    </div>
+                    ${mr.signals.negative.length > 0 ? `
+                        <div style="margin-top: 10px;">
+                            <strong>부정 신호:</strong>
+                            <ul style="margin-left: 20px; margin-top: 5px;">
+                                ${mr.signals.negative.map(s => `<li>✗ ${s}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                </div>
+                
+                <div class="result-section">
+                    <h2>🔍 상위 섹터</h2>
+                    ${result.ranked_sectors.slice(0, 3).map((s, i) => `
+                        <div class="sector-item">
+                            <strong>${i+1}위: ${s.sector}</strong> (${s.signal})<br>
+                            자금 흐름: ${s.flow_score}/100 | 신뢰도: ${s.confidence}%<br>
+                            <small>${s.why.slice(0, 2).join(' / ')}</small>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            if (result.recommendations && result.recommendations.length > 0) {
+                html += `
+                    <div class="result-section">
+                        <h2>💎 추천 종목</h2>
+                        ${result.recommendations.slice(0, 3).map(rec => {
+                            const tp = rec.trade_plan;
+                            return `
+                                <div class="stock-item ${rec.classification.toLowerCase()}">
+                                    <h3>${rec.name} (${rec.ticker})</h3>
+                                    <p><strong>분류:</strong> ${rec.classification} | <strong>액션:</strong> ${rec.action} | <strong>신뢰도:</strong> ${rec.confidence}%</p>
+                                    
+                                    ${tp ? `
+                                        <div class="trade-plan">
+                                            <div class="trade-plan-item">
+                                                <div class="trade-plan-label">현재가</div>
+                                                <div class="trade-plan-value">${formatPrice(tp.current_price, rec.currency)}</div>
+                                            </div>
+                                            <div class="trade-plan-item">
+                                                <div class="trade-plan-label">진입가 (눌림)</div>
+                                                <div class="trade-plan-value">${formatPrice(tp.entry.pullback, rec.currency)}</div>
+                                            </div>
+                                            <div class="trade-plan-item">
+                                                <div class="trade-plan-label">손절가</div>
+                                                <div class="trade-plan-value" style="color: #dc3545;">${formatPrice(tp.stop_loss, rec.currency)}</div>
+                                            </div>
+                                            <div class="trade-plan-item">
+                                                <div class="trade-plan-label">목표가 (보수)</div>
+                                                <div class="trade-plan-value" style="color: #28a745;">${formatPrice(tp.targets.conservative, rec.currency)}</div>
+                                            </div>
+                                            <div class="trade-plan-item">
+                                                <div class="trade-plan-label">목표가 (공격)</div>
+                                                <div class="trade-plan-value" style="color: #007bff;">${formatPrice(tp.targets.aggressive, rec.currency)}</div>
+                                            </div>
+                                            <div class="trade-plan-item">
+                                                <div class="trade-plan-label">리스크/리워드</div>
+                                                <div class="trade-plan-value">1:${tp.risk_reward_ratio}</div>
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                    
+                                    ${rec.devil_advocate && rec.devil_advocate.counter_arguments.length > 0 ? `
+                                        <div style="margin-top: 15px;">
+                                            <strong>😈 반론 사항:</strong>
+                                            ${rec.devil_advocate.counter_arguments.map(c => `
+                                                <div class="counter-argument ${c.severity}">
+                                                    <strong>[${c.category}]</strong> ${c.point}
+                                                </div>
+                                            `).join('')}
+                                            <p style="margin-top: 10px;"><em>${rec.devil_advocate.final_note}</em></p>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }
+            
+            resultsDiv.innerHTML = html;
+        }
+        
+        function displayQuickResults(result) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.className = 'results show';
+            
+            // 디버깅: currency 필드 확인
+            console.log('=== Quick Analysis Result ===');
+            console.log('Stock Analysis:', result.stock_analysis);
+            console.log('Currency:', result.stock_analysis?.currency);
+            console.log('Trade Plan Currency:', result.stock_analysis?.trade_plan?.currency);
+            
+            const mr = result.market_regime;
+            const sa = result.stock_analysis;
+            const tp = sa.trade_plan;
+            
+            let html = `
+                <div class="result-section">
+                    <h2>🌍 시장 상태</h2>
+                    <p><span class="market-state ${mr.state.toLowerCase().replace('_', '-')}">${mr.state}</span></p>
+                    <p>${mr.playbook}</p>
+                </div>
+                
+                <div class="result-section">
+                    <h2>🎯 종목 분석: ${sa.name} (${sa.ticker})</h2>
+                    <p><strong>분류:</strong> ${sa.classification}</p>
+                    <p><strong>액션:</strong> ${sa.action}</p>
+                    <p><strong>신뢰도:</strong> ${sa.confidence}%</p>
+                    
+                    ${tp ? `
+                        <h3 style="margin-top: 20px;">📋 매매 계획</h3>
+                        <div class="trade-plan">
+                            <div class="trade-plan-item">
+                                <div class="trade-plan-label">현재가</div>
+                                <div class="trade-plan-value">${formatPrice(tp.current_price, sa.currency)}</div>
+                            </div>
+                            <div class="trade-plan-item">
+                                <div class="trade-plan-label">진입가</div>
+                                <div class="trade-plan-value">${formatPrice(tp.entry.pullback, sa.currency)}</div>
+                            </div>
+                            <div class="trade-plan-item">
+                                <div class="trade-plan-label">손절가</div>
+                                <div class="trade-plan-value" style="color: #dc3545;">${formatPrice(tp.stop_loss, sa.currency)}</div>
+                            </div>
+                            <div class="trade-plan-item">
+                                <div class="trade-plan-label">목표가</div>
+                                <div class="trade-plan-value" style="color: #28a745;">${formatPrice(tp.targets.aggressive, sa.currency)}</div>
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    ${sa.devil_advocate ? `
+                        <div style="margin-top: 20px;">
+                            <strong>😈 반론 사항:</strong>
+                            ${sa.devil_advocate.counter_arguments.map(c => `
+                                <div class="counter-argument ${c.severity}">
+                                    <strong>[${c.category}]</strong> ${c.point}
+                                </div>
+                            `).join('')}
+                            <p style="margin-top: 10px;"><em>${sa.devil_advocate.final_note}</em></p>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            resultsDiv.innerHTML = html;
+        }
+        
+        function displayMarketRegime(result) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.className = 'results show';
+            
+            let html = `
+                <div class="result-section">
+                    <h2>🌍 Market Regime Analyst</h2>
+                    <p><strong>시장 상태:</strong> <span class="market-state ${result.state.toLowerCase().replace('_', '-')}">${result.state}</span></p>
+                    <p><strong>점수:</strong> ${result.score}/${result.max_score}</p>
+                    <p><strong>신뢰도:</strong> ${result.confidence}%</p>
+                    <p><strong>Playbook:</strong> ${result.playbook}</p>
+                    
+                    <div style="margin-top: 15px;">
+                        <strong>긍정 신호:</strong>
+                        <ul style="margin-left: 20px; margin-top: 5px;">
+                            ${result.signals.positive.map(s => `<li>✓ ${s}</li>`).join('')}
+                        </ul>
+                    </div>
+                    
+                    ${result.signals.negative.length > 0 ? `
+                        <div style="margin-top: 10px;">
+                            <strong>부정 신호:</strong>
+                            <ul style="margin-left: 20px; margin-top: 5px;">
+                                ${result.signals.negative.map(s => `<li>✗ ${s}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            resultsDiv.innerHTML = html;
+        }
+    </script>
+</body>
+</html>

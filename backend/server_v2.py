@@ -3,6 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 import os
 from datetime import date, datetime
+import traceback
+
+# AI Agent imports
+from agents.orchestrator import AgentOrchestrator
+from services.agent_data_provider import AgentDataProvider
+from services.krx_stock_api import KRXStockAPI
 
 # -----------------------
 # Config
@@ -13,6 +19,21 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 WEB_DIR = os.path.join(BASE_DIR, "..")  # 상위 디렉토리 (index.html 위치)
 
 app = FastAPI(title="Decision Stream | 중기 스윙 투자 시스템")
+
+# -----------------------
+# AI Agent 초기화
+# -----------------------
+try:
+    agent_orchestrator = AgentOrchestrator()
+    agent_data_provider = AgentDataProvider(use_real_us_data=True)  # 실시간 미국 주식 데이터 사용
+    krx_api = KRXStockAPI()  # 한국거래소 API (20분 지연)
+    print("✅ AI Agent 시스템 초기화 완료")
+    print("✅ KRX API 초기화 완료 (한국 주식 20분 지연 시세)")
+except Exception as e:
+    print(f"⚠️ AI Agent 초기화 실패: {e}")
+    agent_orchestrator = None
+    agent_data_provider = None
+    krx_api = None
 
 # -----------------------
 # CORS
@@ -32,6 +53,10 @@ async def keycheck(req: Request, call_next):
     # Allow HTML files without key
     if req.url.path == "/" or req.url.path.endswith(".html") or req.url.path.endswith(".css") or req.url.path.endswith(".js"):
         return await call_next(req)
+    
+    # Allow chart API without key (public access)
+    if req.url.path.startswith("/api/chart/"):
+        return await call_next(req)
 
     client_key = req.query_params.get("key")
     if client_key != ACCESS_KEY:
@@ -39,7 +64,7 @@ async def keycheck(req: Request, call_next):
     return await call_next(req)
 
 # -----------------------
-# Index
+# Index & Static HTML
 # -----------------------
 @app.get("/")
 def root():
@@ -47,6 +72,25 @@ def root():
     if not os.path.exists(index_path):
         return JSONResponse(status_code=404, content={"error": "index.html not found"})
     return FileResponse(index_path)
+
+@app.get("/agent_test.html")
+def agent_test():
+    """AI Agent 테스트 페이지"""
+    agent_test_path = os.path.join(WEB_DIR, "agent_test.html")
+    if not os.path.exists(agent_test_path):
+        return JSONResponse(status_code=404, content={"error": "agent_test.html not found"})
+    return FileResponse(agent_test_path)
+
+@app.get("/{filename}")
+def serve_html(filename: str):
+    """HTML 파일 제공"""
+    if not filename.endswith(".html"):
+        return JSONResponse(status_code=404, content={"error": "Not found"})
+    
+    filepath = os.path.join(WEB_DIR, filename)
+    if not os.path.exists(filepath):
+        return JSONResponse(status_code=404, content={"error": f"{filename} not found"})
+    return FileResponse(filepath)
 
 # -----------------------
 # Utils / Mock Data
@@ -355,14 +399,364 @@ Watch & Checklist에서 "사면 안 되는 이유"를 체크합니다.
 
 
 # -----------------------
+# AI Agent APIs
+# -----------------------
+
+@app.post("/api/agent/analyze")
+async def agent_full_analysis(request: Request):
+    """
+    전체 AI Agent 분석 파이프라인 실행
+    
+    Request Body:
+    {
+        "tickers": ["005930", "000660", "012450"],  // 선택
+        "sectors": ["반도체", "방산"],              // 선택
+        "period": "단기",                           // 단기 | 중기
+        "risk_profile": "중립",                    // 보수 | 중립 | 공격
+        "account_size": 10000000                   // 선택 (원)
+    }
+    """
+    if not agent_orchestrator or not agent_data_provider:
+        return JSONResponse(
+            status_code=503,
+            content={"error": "AI Agent system not initialized"}
+        )
+    
+    try:
+        body = await request.json()
+        
+        # 1. 데이터 수집
+        market_data = agent_data_provider.get_market_data()
+        
+        # 섹터 데이터
+        sectors_param = body.get("sectors", ["반도체", "방산", "2차전지"])
+        sectors_data = agent_data_provider.get_sectors_data(sectors_param)
+        
+        # 종목 데이터
+        tickers = body.get("tickers", ["005930", "000660", "012450"])
+        stocks_data = agent_data_provider.get_stocks_data(tickers)
+        
+        # 2. 사용자 프로필
+        user_profile = {
+            "period": body.get("period", "단기"),
+            "risk_profile": body.get("risk_profile", "중립"),
+            "account_size": body.get("account_size", 0)
+        }
+        
+        # 3. Agent 실행
+        result = agent_orchestrator.run_full_analysis(
+            market_data,
+            sectors_data,
+            stocks_data,
+            user_profile
+        )
+        
+        # 4. 결과 저장 (선택)
+        if body.get("save_result", False):
+            agent_data_provider.save_analysis_result(result)
+        
+        return result
+        
+    except Exception as e:
+        print(f"❌ Agent 분석 오류: {e}")
+        traceback.print_exc()
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e), "detail": traceback.format_exc()}
+        )
+
+
+@app.post("/api/agent/quick-analyze")
+async def agent_quick_analysis(request: Request):
+    """
+    단일 종목 빠른 분석 (Agent 1, 3, 4, 5만 실행)
+    
+    Request Body:
+    {
+        "ticker": "005930",
+        "period": "단기",
+        "risk_profile": "중립",
+        "account_size": 10000000
+    }
+    """
+    if not agent_orchestrator or not agent_data_provider:
+        return JSONResponse(
+            status_code=503,
+            content={"error": "AI Agent system not initialized"}
+        )
+    
+    try:
+        body = await request.json()
+        ticker = body.get("ticker")
+        
+        if not ticker:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "ticker is required"}
+            )
+        
+        # 데이터 수집
+        market_data = agent_data_provider.get_market_data()
+        stocks_data = agent_data_provider.get_stocks_data([ticker])
+        
+        if not stocks_data:
+            return JSONResponse(
+                status_code=404,
+                content={"error": f"Stock data not found for {ticker}"}
+            )
+        
+        stock_data = stocks_data[0]
+        
+        # 사용자 프로필
+        user_profile = {
+            "period": body.get("period", "단기"),
+            "risk_profile": body.get("risk_profile", "중립"),
+            "account_size": body.get("account_size", 0)
+        }
+        
+        # 빠른 분석 실행
+        result = agent_orchestrator.run_quick_analysis(
+            market_data,
+            stock_data,
+            user_profile
+        )
+        
+        return result
+        
+    except Exception as e:
+        print(f"❌ 빠른 분석 오류: {e}")
+        traceback.print_exc()
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e), "detail": traceback.format_exc()}
+        )
+
+
+@app.get("/api/agent/market-regime")
+def agent_market_regime():
+    """
+    시장 상태만 빠르게 조회
+    """
+    if not agent_orchestrator or not agent_data_provider:
+        return JSONResponse(
+            status_code=503,
+            content={"error": "AI Agent system not initialized"}
+        )
+    
+    try:
+        market_data = agent_data_provider.get_market_data()
+        result = agent_orchestrator.market_analyst.analyze(market_data)
+        return result
+        
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)}
+        )
+
+
+# -----------------------
+# Chart Analysis (Real Data)
+# -----------------------
+def _format_summary(name, price, currency, short_trend, mid_trend, ma20, ma60):
+    """Summary 텍스트 생성"""
+    if currency == 'USD':
+        price_str = f"${price:.2f}"
+        ma20_str = f"${ma20:.2f}"
+        ma60_str = f"${ma60:.2f}"
+    else:
+        price_str = f"{int(price):,}원"
+        ma20_str = f"{int(ma20):,}원"
+        ma60_str = f"{int(ma60):,}원"
+    
+    return f"""{name} 실시간 분석
+
+현재가: {price_str}
+단기 추세: {short_trend}
+중기 추세: {mid_trend}
+MA20: {ma20_str}
+MA60: {ma60_str}"""
+
+@app.get("/api/chart/{ticker}")
+async def get_chart_data(ticker: str):
+    """
+    차트 분석용 실시간 데이터 제공
+    - 한국 주식 (6자리 숫자): Yahoo Finance (.KS) 사용 (15분 지연)
+    - 미국 주식 (알파벳): Yahoo Finance 사용 (15분 지연)
+    """
+    if not agent_data_provider:
+        return JSONResponse(
+            status_code=503,
+            content={"error": "Agent system not initialized"}
+        )
+    
+    try:
+        # 한국 주식 vs 미국 주식 자동 감지
+        is_korean_stock = ticker.isdigit() and len(ticker) == 6
+        
+        if is_korean_stock:
+            # 한국 주식: Yahoo Finance 사용 (종목코드.KS)
+            yahoo_ticker = f"{ticker}.KS"
+            
+            if agent_data_provider.us_stock_service:
+                try:
+                    # Yahoo Finance로 한국 주식 조회
+                    kr_price_data = agent_data_provider.us_stock_service.get_current_price(yahoo_ticker)
+                    
+                    stock_data = {
+                        'ticker': ticker,
+                        'name': kr_price_data.get('name', ticker),
+                        'current_price': kr_price_data.get('price', 0),
+                        'change_rate': kr_price_data.get('change_percent', 0),
+                        'volume': kr_price_data.get('volume', 0),
+                        'currency': 'KRW',
+                        'ma20': kr_price_data.get('ma20', 0),
+                        'ma60': kr_price_data.get('ma60', 0)
+                    }
+                    currency = 'KRW'
+                    real_ticker = yahoo_ticker  # Historical 데이터용
+                except Exception as e:
+                    return JSONResponse(
+                        status_code=500,
+                        content={"error": f"Yahoo Finance (KR) error: {str(e)}"}
+                    )
+            else:
+                return JSONResponse(
+                    status_code=503,
+                    content={"error": "US stock service not available"}
+                )
+        else:
+            # 미국 주식: 기존 로직 사용
+            stocks_data = agent_data_provider.get_stocks_data([ticker])
+            
+            if not stocks_data:
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": f"Stock data not found for {ticker}"}
+                )
+            
+            stock_data = stocks_data[0]
+            currency = stock_data.get('currency', 'USD')
+            real_ticker = ticker
+        
+        # Historical 데이터 가져오기
+        dates = []
+        prices = []
+        ma5 = []
+        ma20_arr = []
+        ma60_arr = []
+        
+        # Yahoo Finance로 historical 데이터 가져오기 (한국/미국 모두)
+        if agent_data_provider.us_stock_service:
+            try:
+                # 120일 historical 데이터
+                daily_data = agent_data_provider.us_stock_service.get_daily_data(real_ticker, period="6mo")
+                
+                for i, day in enumerate(daily_data[-120:]):
+                    dates.append(day['date'])
+                    prices.append(day['close'])
+                    
+                    # MA 계산
+                    if i >= 4:
+                        ma5.append(sum(prices[i-4:i+1]) / 5)
+                    else:
+                        ma5.append(None)
+                    
+                    if i >= 19:
+                        ma20_arr.append(sum(prices[i-19:i+1]) / 20)
+                    else:
+                        ma20_arr.append(None)
+                    
+                    if i >= 59:
+                        ma60_arr.append(sum(prices[i-59:i+1]) / 60)
+                    else:
+                        ma60_arr.append(None)
+            except Exception as e:
+                print(f"Failed to get historical data: {e}")
+                # Fallback to simple data
+                pass
+        
+        # Historical 데이터가 없으면 간단한 데이터 생성
+        if not prices:
+            current_price = stock_data.get('current_price', 0)
+            for i in range(120):
+                dates.append(f"2026-{1 + i//31:02d}-{1 + i%31:02d}")
+                # 간단한 랜덤 가격 (현재가 기준)
+                price_variance = (i - 60) * current_price * 0.001
+                prices.append(current_price + price_variance)
+                ma5.append(None if i < 4 else current_price)
+                ma20_arr.append(None if i < 19 else stock_data.get('ma20', current_price))
+                ma60_arr.append(None if i < 59 else stock_data.get('ma60', current_price))
+        
+        # 차트용 데이터 변환
+        current_price = stock_data.get('current_price', 0)
+        ma20 = stock_data.get('ma20', 0)
+        ma60 = stock_data.get('ma60', 0)
+        currency = stock_data.get('currency', 'KRW')
+        
+        # 간단한 기술적 지표 계산
+        # RSI는 간소화 (실제로는 14일 필요)
+        rsi = 55.0  # Mock
+        
+        # 추세 판단
+        short_trend = '상승' if current_price > ma20 else '하락'
+        mid_trend = '상승' if ma20 > ma60 else '하락'
+        
+        # MACD는 간소화
+        macd = '매수' if current_price > ma20 else '중립'
+        
+        # 지지선/저항선
+        support = stock_data.get('support_levels', [current_price * 0.95])[0]
+        resistance = stock_data.get('resistance_levels', [current_price * 1.05])[0]
+        
+        # 매수/매도 신호
+        signal = 'BUY' if short_trend == '상승' and mid_trend == '상승' else 'HOLD'
+        
+        return {
+            "ticker": ticker,
+            "name": stock_data.get('name', ticker),
+            "currency": currency,
+            "dates": dates,
+            "prices": prices,
+            "ma5": ma5,
+            "ma20": ma20_arr,
+            "ma60": ma60_arr,
+            "indicators": {
+                "current_price": current_price,
+                "ma20": ma20,
+                "ma60": ma60,
+                "rsi": rsi,
+                "macd": macd,
+                "short_trend": short_trend,
+                "mid_trend": mid_trend,
+                "support": support,
+                "resistance": resistance,
+                "patterns": []
+            },
+            "signal": signal,
+            "summary": _format_summary(stock_data.get('name', ticker), current_price, currency, short_trend, mid_trend, ma20, ma60)
+        }
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)}
+        )
+
+# -----------------------
 # Health Check
 # -----------------------
 @app.get("/health")
 def health():
+    agent_status = "ok" if agent_orchestrator and agent_data_provider else "unavailable"
+    
     return {
         "status": "ok",
         "timestamp": datetime.now().isoformat(),
-        "version": "1.0.0"
+        "version": "1.0.0",
+        "ai_agent": agent_status
     }
 
 

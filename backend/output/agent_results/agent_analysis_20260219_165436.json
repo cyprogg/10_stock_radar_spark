@@ -1,0 +1,474 @@
+{
+  "timestamp": "2026-02-19T16:54:36.537480",
+  "market_regime": {
+    "state": "RISK_ON",
+    "score": 2,
+    "max_score": 3,
+    "confidence": 80,
+    "playbook": "눌림 매수 대기. 20일선 지지 확인 후 진입.",
+    "signals": {
+      "positive": [
+        "코스피 20일선/60일선 위",
+        "상승/하락 비율 1.3:1",
+        "S&P500 주요 이평선 위"
+      ],
+      "negative": []
+    },
+    "lasting_themes": [],
+    "sources": [
+      {
+        "type": "api",
+        "name": "Market Data API",
+        "timestamp": "2026-02-19T16:54:36.537480"
+      }
+    ]
+  },
+  "ranked_sectors": [
+    {
+      "sector": "반도체",
+      "flow_score": 70,
+      "signal": "NORMAL",
+      "duration": "1주",
+      "rank": 1,
+      "breakdown": {
+        "flow": 70,
+        "structure": 50,
+        "narrative": 70
+      },
+      "why": [
+        "외국인 300억 + 기관 150억 순매수",
+        "정책 키워드 'AI/반도체' 15건"
+      ],
+      "counter": [],
+      "confidence": 62
+    },
+    {
+      "sector": "방산",
+      "flow_score": 70,
+      "signal": "NORMAL",
+      "duration": "2주",
+      "rank": 2,
+      "breakdown": {
+        "flow": 70,
+        "structure": 70,
+        "narrative": 100
+      },
+      "why": [
+        "거래대금 2.5배 증가 (20일 기준)",
+        "외국인 150억 + 기관 200억 순매수",
+        "정책 키워드 '수출/계약' 25건"
+      ],
+      "counter": [],
+      "confidence": 76
+    },
+    {
+      "sector": "2차전지",
+      "flow_score": 30,
+      "signal": "WEAK",
+      "duration": "3주",
+      "rank": 3,
+      "breakdown": {
+        "flow": 30,
+        "structure": 40,
+        "narrative": 64
+      },
+      "why": [
+        "외국인 200억 + 기관 100억 순매수",
+        "정책 키워드 'ESG/친환경' 12건"
+      ],
+      "counter": [
+        "신고가 종목 2개로 제한적",
+        "테마 지속 21일차 (피로도 체크 필요)"
+      ],
+      "confidence": 40
+    }
+  ],
+  "screened_stocks": {
+    "leaders": [
+      {
+        "ticker": "012450",
+        "name": "한화에어로스페이스",
+        "classification": "LEADER",
+        "action": "BUY_NOW",
+        "scores": {
+          "1_flow": 92,
+          "2_cycle": true,
+          "3_quality": 85,
+          "4_governance": 78,
+          "5_narrative": 88,
+          "6_risk": 22,
+          "7_time_fit": true,
+          "8_value": 60,
+          "9_momentum": 100
+        },
+        "why_leader": [
+          "섹터 전체 상승 (진짜 모멘텀)",
+          "기관/외국인 동시 매수",
+          "펀더멘털 기반 뉴스 (수주/실적)"
+        ],
+        "counter": [
+          "하방 리스크 22점"
+        ],
+        "confidence": 100
+      },
+      {
+        "ticker": "005930",
+        "name": "삼성전자",
+        "classification": "LEADER",
+        "action": "BUY_NOW",
+        "scores": {
+          "1_flow": 85,
+          "2_cycle": true,
+          "3_quality": 90,
+          "4_governance": 85,
+          "5_narrative": 75,
+          "6_risk": 15,
+          "7_time_fit": true,
+          "8_value": 70,
+          "9_momentum": 100
+        },
+        "why_leader": [
+          "섹터 전체 상승 (진짜 모멘텀)",
+          "기관/외국인 동시 매수",
+          "펀더멘털 기반 뉴스 (수주/실적)"
+        ],
+        "counter": [],
+        "confidence": 97
+      },
+      {
+        "ticker": "000660",
+        "name": "SK하이닉스",
+        "classification": "LEADER",
+        "action": "BUY_NOW",
+        "scores": {
+          "1_flow": 82,
+          "2_cycle": true,
+          "3_quality": 88,
+          "4_governance": 80,
+          "5_narrative": 78,
+          "6_risk": 18,
+          "7_time_fit": true,
+          "8_value": 65,
+          "9_momentum": 100
+        },
+        "why_leader": [
+          "섹터 전체 상승 (진짜 모멘텀)",
+          "기관/외국인 동시 매수",
+          "펀더멘털 기반 뉴스 (수주/실적)"
+        ],
+        "counter": [],
+        "confidence": 97
+      }
+    ],
+    "followers": [],
+    "nogo_count": 0
+  },
+  "recommendations": [
+    {
+      "ticker": "012450",
+      "name": "한화에어로스페이스",
+      "classification": "LEADER",
+      "action": "BUY_NOW",
+      "scores": {
+        "1_flow": 92,
+        "2_cycle": true,
+        "3_quality": 85,
+        "4_governance": 78,
+        "5_narrative": 88,
+        "6_risk": 22,
+        "7_time_fit": true,
+        "8_value": 60,
+        "9_momentum": 100
+      },
+      "why_leader": [
+        "섹터 전체 상승 (진짜 모멘텀)",
+        "기관/외국인 동시 매수",
+        "펀더멘털 기반 뉴스 (수주/실적)"
+      ],
+      "counter": [
+        "하방 리스크 22점"
+      ],
+      "confidence": 100,
+      "trade_plan": {
+        "ticker": "012450",
+        "name": "한화에어로스페이스",
+        "current_price": 350000,
+        "entry": {
+          "breakout": 361800.0,
+          "pullback": 346725.0,
+          "current": 350000
+        },
+        "stop_loss": 338100.0,
+        "targets": {
+          "conservative": 352800.0,
+          "aggressive": 397600.0
+        },
+        "position_size": {
+          "percent": 58.8,
+          "shares": 16,
+          "amount": 5600000
+        },
+        "split_plan": [
+          {
+            "action": "진입",
+            "percent": 60,
+            "price": 346725,
+            "condition": "20일선 지지 확인"
+          },
+          {
+            "action": "추가",
+            "percent": 40,
+            "price": 339790,
+            "condition": "2차 지지선"
+          },
+          {
+            "action": "손절",
+            "percent": 100,
+            "price": 338100,
+            "condition": "손절선 이탈"
+          },
+          {
+            "action": "익절",
+            "percent": 50,
+            "price": 352800,
+            "condition": "1차 목표"
+          },
+          {
+            "action": "익절",
+            "percent": 50,
+            "price": 397600,
+            "condition": "2차 목표"
+          }
+        ],
+        "risk_reward_ratio": 4.0,
+        "why": [
+          "20일선 345,000원 지지",
+          "손절 -3.4% (ATR 기반)",
+          "리스크/리워드 1:4.0",
+          "포지션 크기 58.8%"
+        ]
+      },
+      "devil_advocate": {
+        "counter_arguments": [
+          {
+            "category": "리스크",
+            "point": "하방 리스크 점수 22 (변동성 주의)",
+            "severity": "medium",
+            "source": "리스크 분석"
+          }
+        ],
+        "final_note": "⚠️ 리더 종목이나 소폭 반론 있음. 리스크 관리 철저히 하세요."
+      }
+    },
+    {
+      "ticker": "005930",
+      "name": "삼성전자",
+      "classification": "LEADER",
+      "action": "BUY_NOW",
+      "scores": {
+        "1_flow": 85,
+        "2_cycle": true,
+        "3_quality": 90,
+        "4_governance": 85,
+        "5_narrative": 75,
+        "6_risk": 15,
+        "7_time_fit": true,
+        "8_value": 70,
+        "9_momentum": 100
+      },
+      "why_leader": [
+        "섹터 전체 상승 (진짜 모멘텀)",
+        "기관/외국인 동시 매수",
+        "펀더멘털 기반 뉴스 (수주/실적)"
+      ],
+      "counter": [],
+      "confidence": 97,
+      "trade_plan": {
+        "ticker": "005930",
+        "name": "삼성전자",
+        "current_price": 75000,
+        "entry": {
+          "breakout": 78390.0,
+          "pullback": 73365.0,
+          "current": 75000
+        },
+        "stop_loss": 71540.0,
+        "targets": {
+          "conservative": 76440.0,
+          "aggressive": 88840.0
+        },
+        "position_size": {
+          "percent": 43.4,
+          "shares": 57,
+          "amount": 4275000
+        },
+        "split_plan": [
+          {
+            "action": "진입",
+            "percent": 60,
+            "price": 73365,
+            "condition": "20일선 지지 확인"
+          },
+          {
+            "action": "추가",
+            "percent": 40,
+            "price": 71897,
+            "condition": "2차 지지선"
+          },
+          {
+            "action": "손절",
+            "percent": 100,
+            "price": 71540,
+            "condition": "손절선 이탈"
+          },
+          {
+            "action": "익절",
+            "percent": 50,
+            "price": 76440,
+            "condition": "1차 목표"
+          },
+          {
+            "action": "익절",
+            "percent": 50,
+            "price": 88840,
+            "condition": "2차 목표"
+          }
+        ],
+        "risk_reward_ratio": 4.0,
+        "why": [
+          "20일선 73,000원 지지",
+          "손절 -4.6% (ATR 기반)",
+          "리스크/리워드 1:4.0",
+          "포지션 크기 43.4%"
+        ]
+      },
+      "devil_advocate": {
+        "counter_arguments": [],
+        "final_note": "✅ 반론 사항 없음. 리더 종목으로 적극 고려 가능."
+      }
+    },
+    {
+      "ticker": "000660",
+      "name": "SK하이닉스",
+      "classification": "LEADER",
+      "action": "BUY_NOW",
+      "scores": {
+        "1_flow": 82,
+        "2_cycle": true,
+        "3_quality": 88,
+        "4_governance": 80,
+        "5_narrative": 78,
+        "6_risk": 18,
+        "7_time_fit": true,
+        "8_value": 65,
+        "9_momentum": 100
+      },
+      "why_leader": [
+        "섹터 전체 상승 (진짜 모멘텀)",
+        "기관/외국인 동시 매수",
+        "펀더멘털 기반 뉴스 (수주/실적)"
+      ],
+      "counter": [],
+      "confidence": 97,
+      "trade_plan": {
+        "ticker": "000660",
+        "name": "SK하이닉스",
+        "current_price": 180000,
+        "entry": {
+          "breakout": 185925.0,
+          "pullback": 178890.0,
+          "current": 180000
+        },
+        "stop_loss": 174440.0,
+        "targets": {
+          "conservative": 181300.0,
+          "aggressive": 202240.0
+        },
+        "position_size": {
+          "percent": 64.7,
+          "shares": 35,
+          "amount": 6300000
+        },
+        "split_plan": [
+          {
+            "action": "진입",
+            "percent": 60,
+            "price": 178890,
+            "condition": "20일선 지지 확인"
+          },
+          {
+            "action": "추가",
+            "percent": 40,
+            "price": 175312,
+            "condition": "2차 지지선"
+          },
+          {
+            "action": "손절",
+            "percent": 100,
+            "price": 174440,
+            "condition": "손절선 이탈"
+          },
+          {
+            "action": "익절",
+            "percent": 50,
+            "price": 181300,
+            "condition": "1차 목표"
+          },
+          {
+            "action": "익절",
+            "percent": 50,
+            "price": 202240,
+            "condition": "2차 목표"
+          }
+        ],
+        "risk_reward_ratio": 4.0,
+        "why": [
+          "20일선 178,000원 지지",
+          "손절 -3.1% (ATR 기반)",
+          "리스크/리워드 1:4.0",
+          "포지션 크기 64.7%"
+        ]
+      },
+      "devil_advocate": {
+        "counter_arguments": [],
+        "final_note": "✅ 반론 사항 없음. 리더 종목으로 적극 고려 가능."
+      }
+    }
+  ],
+  "summary": {
+    "market_state": "RISK_ON",
+    "market_score": "2/3",
+    "playbook": "눌림 매수 대기. 20일선 지지 확인 후 진입.",
+    "top_sectors": [
+      "반도체",
+      "방산",
+      "2차전지"
+    ],
+    "leaders_count": 3,
+    "followers_count": 0,
+    "nogo_count": 0,
+    "top_recommendations": [
+      {
+        "ticker": "012450",
+        "name": "한화에어로스페이스",
+        "classification": "LEADER",
+        "action": "BUY_NOW",
+        "confidence": 100
+      },
+      {
+        "ticker": "005930",
+        "name": "삼성전자",
+        "classification": "LEADER",
+        "action": "BUY_NOW",
+        "confidence": 97
+      },
+      {
+        "ticker": "000660",
+        "name": "SK하이닉스",
+        "classification": "LEADER",
+        "action": "BUY_NOW",
+        "confidence": 97
+      }
+    ]
+  }
+}

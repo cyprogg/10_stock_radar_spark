@@ -158,11 +158,11 @@
     <div class="container">
         <div class="header">
             <h1>📊 차트 분석 (기술적 분석)</h1>
-            <p>한국투자증권 API 연동 - 실시간 차트 & 보조지표</p>
+            <p>Yahoo Finance API - 한국/미국 주식 실시간 차트 (15분 지연)</p>
         </div>
 
         <div class="search-bar">
-            <input type="text" id="ticker-input" placeholder="종목코드 입력 (예: 005930)" value="005930">
+            <input type="text" id="ticker-input" placeholder="종목코드 입력 (한국: 005930 / 미국: AAPL)" value="AAPL">
             <button onclick="analyzeStock()">분석하기</button>
         </div>
 
@@ -253,8 +253,8 @@
             document.getElementById('result').style.display = 'none';
 
             try {
-                // 실제 API 호출
-                const response = await fetch(`http://127.0.0.1:8125/api/chart/${ticker}?key=ds-test-2026`);
+                // 실제 API 호출 (포트 8126으로 수정)
+                const response = await fetch(`http://127.0.0.1:8126/api/chart/${ticker}?key=ds-test-2026`);
                 
                 if (!response.ok) {
                     throw new Error('데이터를 가져올 수 없습니다.');
@@ -292,17 +292,31 @@
                 '068270': '셀트리온',
                 'JNJ': 'Johnson & Johnson',
                 'LMT': 'Lockheed Martin',
+                'NVDA': 'NVIDIA',
+                'AAPL': 'Apple Inc.',
                 '079550': 'LIG넥스원',
                 '000660': 'SK하이닉스',
                 '042700': '한미반도체'
             };
             
             const stockName = stockNames[ticker] || ticker;
+            
+            // 미국 주식인지 확인 (알파벳 티커)
+            const isUS = ticker.length <= 5 && /^[A-Z]+$/.test(ticker);
+            
             const basePrice = ticker === '005930' ? 75000 : 
                             ticker === '012450' ? 185000 :
                             ticker === '207940' ? 850000 :
+                            ticker === '068270' ? 175000 :
                             ticker === 'JNJ' ? 215 :
-                            ticker === 'LMT' ? 445 : 100000;
+                            ticker === 'LMT' ? 445 :
+                            ticker === 'NVDA' ? 188 :
+                            ticker === 'AAPL' ? 264 :
+                            ticker === '079550' ? 544000 :
+                            ticker === '000660' ? 142000 :
+                            ticker === '042700' ? 95000 :
+                            isUS ? 150 :  // 기본 미국 주식 가격
+                            100000;        // 기본 한국 주식 가격
             let currentPrice = basePrice;
             
             for (let i = 0; i < 120; i++) {
@@ -353,9 +367,10 @@
         function updateUI(data) {
             document.getElementById('result').style.display = 'block';
             
-            // 미국 주식 판별
-            const isUS = data.ticker.length <= 4 && !/^\d+$/.test(data.ticker);
-            const currencySymbol = isUS ? '$' : '₩';
+            // 통화 정보 (API에서 제공)
+            const currency = data.currency || 'KRW';
+            const currencySymbol = currency === 'USD' ? '$' : '₩';
+            const isUS = currency === 'USD';
             
             // 종목명 (데이터에 없으면 종목코드 사용)
             const stockName = data.name || data.ticker;
@@ -363,7 +378,7 @@
             
             // 현재가 및 변동률
             const currentPrice = data.indicators.current_price || data.prices[data.prices.length - 1];
-            const prevPrice = data.prices[data.prices.length - 2];
+            const prevPrice = data.prices && data.prices.length > 1 ? data.prices[data.prices.length - 2] : currentPrice * 0.99;
             const change = ((currentPrice - prevPrice) / prevPrice * 100);
             
             const priceDisplay = isUS ? `${currencySymbol}${currentPrice.toFixed(2)}` : `${currencySymbol}${Math.round(currentPrice).toLocaleString()}`;
@@ -445,8 +460,8 @@
                         {
                             label: '종가',
                             data: data.prices,
-                            borderColor: '#667eea',
-                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            borderColor: '#666666',
+                            backgroundColor: 'rgba(102, 102, 102, 0.1)',
                             borderWidth: 2,
                             pointRadius: 0,
                             tension: 0.1
@@ -454,7 +469,7 @@
                         {
                             label: 'MA5',
                             data: data.ma5,
-                            borderColor: '#48bb78',
+                            borderColor: '#ff0000',
                             borderWidth: 1,
                             pointRadius: 0,
                             tension: 0.1
@@ -462,7 +477,7 @@
                         {
                             label: 'MA20',
                             data: data.ma20,
-                            borderColor: '#f6ad55',
+                            borderColor: '#ffff00',
                             borderWidth: 1,
                             pointRadius: 0,
                             tension: 0.1
@@ -470,7 +485,7 @@
                         {
                             label: 'MA60',
                             data: data.ma60,
-                            borderColor: '#fc8181',
+                            borderColor: '#00ff00',
                             borderWidth: 1,
                             pointRadius: 0,
                             tension: 0.1

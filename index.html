@@ -1,4 +1,6 @@
-<!doctype html>
+cd backend
+python server_v2.pycd backend
+python server_v2.py<!doctype html>
 <html lang="ko">
 <head>
 <meta charset="utf-8"/>
@@ -723,6 +725,31 @@ const $ = sel => document.querySelector(sel);
 const $$ = sel => document.querySelectorAll(sel);
 const withKey = p => `${API}${p}${p.includes('?')?'&':'?'}key=${ACCESS_KEY}`;
 
+// 통화별 가격 표시 함수
+const formatPrice = (price, currency) => {
+  if (!price && price !== 0) return 'N/A';
+  
+  // currency가 명시적으로 지정되지 않은 경우 ticker로 판단
+  if (!currency) {
+    currency = 'KRW'; // 기본값
+  }
+  
+  const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+  
+  if (currency === 'USD') {
+    return `$${numPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+  } else {
+    return `${Math.round(numPrice).toLocaleString('ko-KR')}원`;
+  }
+};
+
+// ticker로 통화 자동 감지
+const detectCurrency = (ticker) => {
+  if (!ticker) return 'KRW';
+  // 숫자로 시작하면 한국 주식 (KRW), 알파벳이면 미국 주식 (USD)
+  return /^[0-9]/.test(ticker) ? 'KRW' : 'USD';
+};
+
 // Mock 데이터
 const MOCK_DATA = {
   regime: {
@@ -752,17 +779,18 @@ const MOCK_DATA = {
   funnels: {
     '방산': {
       leader: [
-        { ticker: 'LMT', name: 'Lockheed Martin', price: 581.00 }
+        { ticker: 'LMT', name: 'Lockheed Martin', price: 581.00, currency: 'USD' }
       ],
       follower: [
-        { ticker: '012450', name: '한화에어로스페이스', price: 185000 },
-        { ticker: '079550', name: 'LIG넥스원', price: 544000 }
+        { ticker: '012450', name: '한화에어로스페이스', price: 185000, currency: 'KRW' },
+        { ticker: '079550', name: 'LIG넥스원', price: 544000, currency: 'KRW' }
       ],
       nogo: [
         { 
           ticker: 'RTX', 
           name: 'Raytheon Technologies', 
           price: 98.50,
+          currency: 'USD',
           reason: '과열 (3일 +22%, 거래대금 폭발)',
           detail: '단일 기사 급등, 개인만 매수'
         }
@@ -770,17 +798,18 @@ const MOCK_DATA = {
     },
     '헬스케어': {
       leader: [
-        { ticker: 'JNJ', name: 'Johnson & Johnson', price: 215.00 }
+        { ticker: 'JNJ', name: 'Johnson & Johnson', price: 215.00, currency: 'USD' }
       ],
       follower: [
-        { ticker: '207940', name: '삼성바이오로직스', price: 850000 },
-        { ticker: '068270', name: '셀트리온', price: 175000 }
+        { ticker: '207940', name: '삼성바이오로직스', price: 850000, currency: 'KRW' },
+        { ticker: '068270', name: '셀트리온', price: 175000, currency: 'KRW' }
       ],
       nogo: [
         {
           ticker: '086900',
           name: '메디톡스',
           price: 45000,
+          currency: 'KRW',
           reason: '테마 말기 (5번째 급등주)',
           detail: '유동성 부족, 커뮤니티 과열'
         }
@@ -788,17 +817,18 @@ const MOCK_DATA = {
     },
     'AI 반도체': {
       leader: [
-        { ticker: 'NVDA', name: 'NVIDIA', price: 875.00 }
+        { ticker: 'NVDA', name: 'NVIDIA', price: 875.00, currency: 'USD' }
       ],
       follower: [
-        { ticker: '005930', name: '삼성전자', price: 75000 },
-        { ticker: '000660', name: 'SK하이닉스', price: 142000 }
+        { ticker: '005930', name: '삼성전자', price: 75000, currency: 'KRW' },
+        { ticker: '000660', name: 'SK하이닉스', price: 142000, currency: 'KRW' }
       ],
       nogo: [
         {
           ticker: 'XYZ123',
           name: 'AI테마주',
           price: 12000,
+          currency: 'KRW',
           reason: '루머성 재료 (검증 안됨)',
           detail: '혼자 급등, 기관/외국인 매도'
         }
@@ -1503,6 +1533,9 @@ function buildTradePlan(stock, funnelType) {
   const period = $('#plan-period').value || '중기';
   const risk = $('#plan-risk').value || '중립';
   
+  // 통화 감지
+  const currency = stock.currency || detectCurrency(stock.ticker);
+  
   // 손절 먼저 계산 (구조 기반)
   const price = stock.price || 185000;
   const ma20 = stock.ma20 || price * 0.97;
@@ -1551,11 +1584,11 @@ function buildTradePlan(stock, funnelType) {
       <h4>📍 진입 2안</h4>
       <div class="plan-row">
         <span class="plan-label">✓ 돌파 진입</span>
-        <span class="plan-value bullish">${entryBreakout.toLocaleString()}원</span>
+        <span class="plan-value bullish">${formatPrice(entryBreakout, currency)}</span>
       </div>
       <div class="plan-row">
         <span class="plan-label">✓ 눌림 매수</span>
-        <span class="plan-value bullish">${entryPullback.toLocaleString()}원</span>
+        <span class="plan-value bullish">${formatPrice(entryPullback, currency)}</span>
       </div>
       <div class="small" style="margin-top:8px; color:var(--muted);">
         💡 최근 고점 돌파 시 또는 20일선 지지 시
@@ -1566,10 +1599,10 @@ function buildTradePlan(stock, funnelType) {
       <h4>✗ 손절 (무조건)</h4>
       <div class="plan-row">
         <span class="plan-label">구조 이탈 시</span>
-        <span class="plan-value bearish">${stopLoss.toLocaleString()}원</span>
+        <span class="plan-value bearish">${formatPrice(stopLoss, currency)}</span>
       </div>
       <div class="small" style="margin-top:8px; color:#ff4d4d;">
-        ⚠️ 손절 여유: ${((riskAmount / price) * 100).toFixed(1)}% (${riskAmount.toLocaleString()}원)
+        ⚠️ 손절 여유: ${((riskAmount / price) * 100).toFixed(1)}% (${formatPrice(riskAmount, currency)})
       </div>
     </div>
     
@@ -1577,11 +1610,11 @@ function buildTradePlan(stock, funnelType) {
       <h4>🎯 목표 2안 + 분할</h4>
       <div class="plan-row">
         <span class="plan-label">1차 목표 (50% 매도)</span>
-        <span class="plan-value bullish">${targetConservative.toLocaleString()}원</span>
+        <span class="plan-value bullish">${formatPrice(targetConservative, currency)}</span>
       </div>
       <div class="plan-row">
         <span class="plan-label">2차 목표 (30% 매도)</span>
-        <span class="plan-value bullish">${targetAggressive.toLocaleString()}원</span>
+        <span class="plan-value bullish">${formatPrice(targetAggressive, currency)}</span>
       </div>
       <div class="plan-row">
         <span class="plan-label">나머지 20%</span>
@@ -1769,6 +1802,7 @@ function closeWhyDrawer() {
 function generateScoreData(scoreType, stock) {
   const price = stock?.price || 185000;
   const ticker = stock?.ticker || '012450';
+  const currency = stock?.currency || detectCurrency(ticker);
   
   // Mock 데이터 (실제로는 API에서 가져옴)
   const baseData = {
@@ -1807,7 +1841,7 @@ function generateScoreData(scoreType, stock) {
           weight: 30
         },
         {
-          text: `MA20(${Math.floor(price * 0.97).toLocaleString()}원) 위 안정적 거래`,
+          text: `MA20(${formatPrice(Math.floor(price * 0.97), currency)}) 위 안정적 거래`,
           source: '차트 분석',
           link: '#',
           weight: 25
