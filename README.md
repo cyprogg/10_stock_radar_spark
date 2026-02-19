@@ -159,15 +159,16 @@ python ds_anchor_auto.py US   # 미국장 실행
 ### 5️⃣ 월 9,900원 현실형 운영
 **무료 데이터만으로 충분합니다!**
 
-**한국 시장 (무료):**
-- KRX 투자자별 매매동향 (외국인/기관/개인)
-- OpenDART API (공시, 실적)
-- 네이버 금융 뉴스 (크롤링)
+**한국 시장:**
+- ✅ Yahoo Finance (실시간 종가, .KS suffix) - 무료 15분 지연
+- ✅ KRX 투자자별 매매동향 (외국인/기관/개인) - 무료
+- OpenDART API (공시, 실적) - 무료
+- 네이버 금융 뉴스 (크롤링) - 무료
 
-**미국 시장 (무료):**
-- Yahoo Finance EOD (종가, 변동성)
-- Alpha Vantage Free (재무제표)
-- FRED API (금리, VIX)
+**미국 시장:**
+- ✅ Yahoo Finance (실시간 종가, 거래량) - 무료 15분 지연
+- Alpha Vantage Free (재무제표) - 무료
+- FRED API (금리, VIX) - 무료
 
 **비용 분석:**
 - 데이터 비용: ₩0
@@ -279,27 +280,35 @@ Level 5: Trade Plan (간단 미리보기)
 
 ## 🚀 빠른 시작
 
-### 1) 대시보드 실행
-```bash
-# index.html을 브라우저에서 열기
-open index.html
-```
+### 1) 로컬 실행 (개발 모드)
 
-### 2) 백엔드 API 서버 (로컬)
+**백엔드 서버 시작:**
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate
 pip install -r requirements.txt
-
-# 간단 버전 (Mock 데이터)
-python server_v2.py
-
-# 전체 버전 (실제 API 연동)
-python server.py
+python -m uvicorn server_v2:app --reload --host 0.0.0.0 --port 8126
 ```
 
-### 3) DS-Anchor 자동 방송
+**프론트엔드 접속:**
+- 브라우저에서 `http://127.0.0.1:8126/` 열기
+- 또는 `index.html` 직접 열기 (file://)
+
+### 2) 실제 데이터 확인
+```bash
+# Market Regime API
+curl "http://127.0.0.1:8126/api/agent/market-regime?key=ds-test-2026"
+
+# Sector Heatmap
+curl "http://127.0.0.1:8126/api/agent/sectors?key=ds-test-2026"
+
+# 주가 차트 (한화에어로스페이스)
+curl "http://127.0.0.1:8126/api/chart/012450"
+
+# 주가 차트 (NVIDIA)
+curl "http://127.0.0.1:8126/api/chart/NVDA"
+```
+
+### 3) DS-Anchor 자동 방송 (선택)
 ```bash
 cd backend
 bash setup_ds_anchor.sh
@@ -307,14 +316,20 @@ python test_ds_anchor.py
 python ds_anchor_auto.py KR
 ```
 
+### 4) 배포 (Railway + Vercel)
+상세 가이드: [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md)
+
 ---
 
 ## 📚 문서
 
-### 핵심 문서 (신규)
-- [AI_AGENT_ARCHITECTURE.md](AI_AGENT_ARCHITECTURE.md) - 5개 AI Agent 설계
-- [MVP_ROADMAP.md](MVP_ROADMAP.md) - 4주 개발 로드맵
-- [DATA_COST_ANALYSIS.md](DATA_COST_ANALYSIS.md) - 월 9,900원 운영 가능성
+### 핵심 문서
+- [AI_AGENT_ARCHITECTURE.md](AI_AGENT_ARCHITECTURE.md) - 5개 AI Agent 설계 ✅
+- [MVP_ROADMAP.md](MVP_ROADMAP.md) - 4주 개발 로드맵 ✅
+- [DATA_COST_ANALYSIS.md](DATA_COST_ANALYSIS.md) - 월 9,900원 운영 가능성 ✅
+- [SAAS_PRODUCTION_ROADMAP.md](SAAS_PRODUCTION_ROADMAP.md) - 🆕 SaaS 상용화 로드맵 (3개월)
+- [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) - 배포 체크리스트
+- [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) - 배포 가이드
 
 ### 투자 프레임워크
 - [INVESTMENT_FRAMEWORK_9_FACTORS.md](INVESTMENT_FRAMEWORK_9_FACTORS.md)
@@ -395,33 +410,99 @@ Trade Plan Builder → 진입/손절/목표/포지션 확인
 
 ---
 
-## 📊 현재 상태
+## 📊 현재 상태 (2026-02-19)
 
-**완료:**
-- ✅ 9요소 투자 프레임워크 (문서)
-- ✅ AI Agent 아키텍처 (설계)
-- ✅ MVP 로드맵 (4주)
+**완료 ✅:**
+- ✅ 9요소 투자 프레임워크 (문서 + 구현)
+- ✅ 5개 AI Agent 시스템 (완전 작동)
+- ✅ MVP 로드맵 (4주) - **완료**
 - ✅ 데이터 비용 분석 (₩9,900 가능성)
 - ✅ DS-Anchor 자동 방송 (KR/US)
 - ✅ 모멘텀 품질 프레임워크
 - ✅ 단기/중기 매매 체크리스트
 - ✅ No-Go 시스템 설계
+- ✅ **Yahoo Finance 실시간 데이터 통합** (한국/미국)
+- ✅ **Mock → 실제 데이터 전환 완료**
+- ✅ **주가 자동 업데이트 시스템**
+- ✅ **GitHub 저장소 생성 및 배포 준비**
+- ✅ **SaaS 상용화 로드맵 작성**
 
-**진행중:**
-- 🔄 5개 AI Agent 구현
-- 🔄 데이터 파이프라인 구축
-- 🔄 점수 엔진 구현
-- 🔄 API 서버 통합
+**운영 중 🚀:**
+- 🚀 Market Regime AI 분석 (실시간)
+- 🚀 Sector Heatmap (5개 섹터 자동 랭킹)
+- 🚀 Stock Funnel (Leader/Follower/No-Go 자동 분류)
+- 🚀 Market Intelligence (AI 시장 해설 생성)
+- 🚀 주가 데이터 (Yahoo Finance, 자동 업데이트)
 
-**예정:**
-- 📅 Why Drawer UI
-- 📅 Trade Plan Builder UI
-- 📅 통합 테스트
-- 📅 Railway 배포
+**다음 단계 📅:**
+- 📅 Railway + Vercel 배포
+- 📅 Supabase Auth (회원가입/로그인)
+- 📅 Stripe 결제 시스템
+- 📅 Beta 테스트 (50명)
+- 📅 정식 런칭
 
 ---
 
 ## 📝 최근 업데이트
+
+### v5.0 (2026-02-19) 🆕 **실제 데이터 전환 완료**
+**주요 개선사항:**
+
+1. **Yahoo Finance 실시간 데이터 통합**
+   - 한국 주식: .KS suffix (005930.KS)
+   - 미국 주식: 직접 티커 (AAPL, NVDA)
+   - 15분 지연 데이터 (무료)
+   - 자동 통화 감지 (KRW/USD)
+
+2. **Mock → AI Agent 실제 데이터 전환**
+   - Market Regime: `/api/agent/market-regime` (AI 분석)
+   - Sector Heatmap: `/api/agent/sectors` (5개 섹터 실시간 랭킹)
+   - Stock Funnel: `/api/agent/funnel` (Leader/Follower 자동 분류)
+   - Market Intelligence: `/api/agent/market-intelligence` (AI 해설)
+
+3. **주가 자동 업데이트 시스템**
+   - 페이지 로드시 자동 업데이트 (12개 종목)
+   - Yahoo Finance `/api/chart/{ticker}` 호출
+   - 실패 시 캐시된 가격 사용 (Graceful degradation)
+   - Console 로그: "✅ Updated 12/12 stock prices"
+
+4. **GitHub 저장소 생성**
+   - Repository: https://github.com/cyprogg/10_stock_radar_spark
+   - 174개 파일 업로드 완료
+   - 배포 준비 완료 (Railway + Vercel)
+
+5. **SaaS 상용화 준비**
+   - [SAAS_PRODUCTION_ROADMAP.md](SAAS_PRODUCTION_ROADMAP.md) 작성
+   - 7단계 로드맵 (3개월)
+   - 예상 수익: ₩2,440,000/월
+   - 초기 비용: $10-30/월
+
+**기술 변경사항:**
+- ✅ `USE_MOCK_DATA = false` (실제 API 사용)
+- ✅ API 포트 변경: 8125 → 8126
+- ✅ `/regime` → `/api/agent/market-regime`
+- ✅ `/sectors` → `/api/agent/sectors`
+- ✅ `/funnel` → `/api/agent/funnel`
+- ✅ `/market_intelligence` → `/api/agent/market-intelligence`
+- ✅ 무한 재귀 방지 (fetchJSON fallback)
+- ✅ file:// 프로토콜 지원
+
+**테스트 완료:**
+- ✅ 한화에어로스페이스: 1,149,000원 (Yahoo Finance)
+- ✅ 삼성바이오로직스: 1,720,000원 (Yahoo Finance)
+- ✅ LMT: $649.81 (Yahoo Finance)
+- ✅ NVIDIA: $187.98 (Yahoo Finance)
+- ✅ 삼성전자: 190,000원 (Yahoo Finance)
+- ✅ Market Regime: RISK_ON (AI 분석)
+- ✅ Sectors: 5개 섹터 랭킹 (AI 분석)
+
+**배포 준비:**
+- ✅ GitHub 저장소 생성
+- ✅ DEPLOYMENT_CHECKLIST.md 완성
+- ⏳ Railway 배포 대기
+- ⏳ Vercel 배포 대기
+
+---
 
 ### v4.0 (2026-01-27)
 **주요 개선사항:**
@@ -464,9 +545,11 @@ Trade Plan Builder → 진입/손절/목표/포지션 확인
 
 ## 🔗 관련 링크
 
-- **프로젝트**: [GitHub Repository](https://github.com/your-repo/decision-stream)
-- **문서**: [전체 문서 목록](docs/)
-- **API**: [API 문서](docs/API_REFERENCE.md) (예정)
+- **프로젝트**: [GitHub Repository](https://github.com/cyprogg/10_stock_radar_spark)
+- **문서**: [전체 문서 목록](./) (50+ 파일)
+- **배포**: Railway (백엔드) + Vercel (프론트엔드) 준비 완료
+- **데이터**: Yahoo Finance (무료 15분 지연)
+- **API**: FastAPI (port 8126)
 
 ---
 
@@ -491,7 +574,3 @@ MIT License
 > 사용자는 "확정"만 한다.
 
 **Happy Trading! 🚀**
-# 10_stock_radar
-# 10_stock_radar_spark
-# Radar_Stock
-# 10_stock_radar_spark
