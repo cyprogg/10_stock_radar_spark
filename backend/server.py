@@ -3,6 +3,8 @@ Decision Stream API Server
 백엔드 목업 데이터 제공 서버 + 주가 자동 업데이트
 """
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Optional, Any
@@ -14,6 +16,16 @@ app = FastAPI(
     description="중기 스윙 투자 시스템 백엔드",
     version="1.0.0"
 )
+
+# 정적 파일 제공 (index.html 등)
+import os
+static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+# index.html을 root 경로에서 제공
+@app.get("/")
+async def root():
+    return FileResponse(os.path.join(static_dir, "index.html"))
 
 # CORS 설정
 app.add_middleware(
@@ -259,20 +271,9 @@ def determine_risk_regime(market_data, vix_data, theme_data):
 # ========== Mock Data ==========
 MOCK_REGIME = {
     "state": "RISK_ON",
-    "score": 2,
-    "max_score": 3,
+    "risk_score": 2.0,
     "playbook": "눌림 매수 허가",
-    "factors": {
-        "breadth": True,    # 상승:하락 1.3:1
-        "volatility": True,  # VKOSPI 18
-        "theme": False       # 지속 테마 1개 미만
-    },
-    "note": "Risk_ON = 사도 죽지 않을 확률이 높다",
-    "detail": {
-        "breadth_ratio": "1.3:1 (상승 650, 하락 500)",
-        "vkospi": 18,
-        "lasting_themes": ["방산"]
-    }
+    "drivers": ["breadth", "volatility"]
 }
 
 MOCK_SECTORS = [

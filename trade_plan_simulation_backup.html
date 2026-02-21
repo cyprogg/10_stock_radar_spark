@@ -625,23 +625,23 @@
 
     <script>
         // Configuration
-        const API_BASE = 'http://127.0.0.1:8125';
+        const API_BASE = 'http://127.0.0.1:8126';
         const ACCESS_KEY = 'ds-test-2026';
 
         // Stock data by sector
         const STOCK_DATABASE = {
             '방산': [
-                { ticker: 'LMT', name: 'Lockheed Martin', price: 581.00 },
-                { ticker: '012450', name: '한화에어로스페이스', price: 185000 },
+                { ticker: 'LMT', name: 'Lockheed Martin', price: 649.00 },
+                { ticker: '012450', name: '한화에어로스페이스', price: 1149000 },
                 { ticker: '079550', name: 'LIG넥스원', price: 544000 }
             ],
             '헬스케어': [
                 { ticker: 'JNJ', name: 'Johnson & Johnson', price: 215.00 },
-                { ticker: '207940', name: '삼성바이오로직스', price: 850000 },
+                { ticker: '207940', name: '삼성바이오로직스', price: 1720000 },
                 { ticker: '068270', name: '셀트리온', price: 175000 }
             ],
             '반도체': [
-                { ticker: '005930', name: '삼성전자', price: 75000 },
+                { ticker: '005930', name: '삼성전자', price: 190000 },
                 { ticker: '000660', name: 'SK하이닉스', price: 142000 },
                 { ticker: '042700', name: '한미반도체', price: 85000 }
             ],
@@ -681,24 +681,53 @@
 
         async function loadStockPrices() {
             try {
-                const response = await fetch('stock_prices.json');
-                if (!response.ok) {
-                    console.warn('stock_prices.json 파일을 찾을 수 없습니다. 기본 주가를 사용합니다.');
-                    return null;
+                const BASE_URL = 'http://localhost:8126';
+                const allTickers = [];
+                
+                // 모든 티커 수집
+                for (const sector in STOCK_DATABASE) {
+                    STOCK_DATABASE[sector].forEach(stock => {
+                        allTickers.push(stock.ticker);
+                    });
                 }
                 
-                const data = await response.json();
-                cachedPrices = data.prices;
-                lastPriceUpdate = data.updateTime;
+                console.log(`💰 Fetching prices for ${allTickers.length} stocks...`);
                 
-                console.log(`✅ 주가 데이터 로드 완료 (업데이트: ${lastPriceUpdate})`);
-                console.log(`   - 성공: ${data.successCount}개, 실패: ${data.failCount}개`);
+                const stocks = {};
+                let successCount = 0;
+                let failCount = 0;
                 
-                updatePriceUpdateBadge(lastPriceUpdate);
+                // 각 티커의 최신 가격 가져오기
+                for (const ticker of allTickers) {
+                    try {
+                        const response = await fetch(`${BASE_URL}/api/chart/${ticker}`);
+                        if (response.ok) {
+                            const data = await response.json();
+                            stocks[ticker] = {
+                                price: data.indicators.current_price,
+                                market: data.currency === 'USD' ? 'US' : 'KR'
+                            };
+                            successCount++;
+                        } else {
+                            failCount++;
+                        }
+                    } catch (error) {
+                        failCount++;
+                    }
+                }
                 
-                return cachedPrices;
+                const updateTime = new Date().toLocaleString('ko-KR');
+                lastPriceUpdate = updateTime;
+                
+                console.log(`✅ 주가 데이터 로드 완료 (업데이트: ${updateTime})`);
+                console.log(`   - 성공: ${successCount}개, 실패: ${failCount}개`);
+                
+                updatePriceUpdateBadge(updateTime);
+                
+                return { stocks, updateTime, successCount, failCount };
             } catch (error) {
                 console.warn('주가 데이터 로드 실패:', error);
+                console.warn('⚠️  기본 주가를 사용합니다.');
                 return null;
             }
         }

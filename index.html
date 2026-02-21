@@ -703,14 +703,16 @@ const USER_PLAN = "β v1.0"; // FREE | PRO | ELITE
 
 // 환경 자동 감지
 const isDevelopment = window.location.hostname === 'localhost' || 
-                     window.location.hostname === '127.0.0.1';
+                     window.location.hostname === '127.0.0.1' ||
+                     window.location.protocol === 'file:' ||
+                     window.location.hostname === '';
 
 const API = isDevelopment 
   ? "http://127.0.0.1:8125" 
   : "https://decision-stream-backend.railway.app"; // ⚠️ Railway 배포 후 실제 도메인으로 변경
 
 const ACCESS_KEY = "ds-test-2026";
-const USE_MOCK_DATA = true; // ⬅️ 항상 Mock 데이터 사용 (테스트용)
+const USE_MOCK_DATA = false; // ⬅️ 실제 API 데이터 사용
 
 // ========== State ==========
 let selectedSector = null;
@@ -779,10 +781,10 @@ const MOCK_DATA = {
   funnels: {
     '방산': {
       leader: [
-        { ticker: 'LMT', name: 'Lockheed Martin', price: 581.00, currency: 'USD' }
+        { ticker: 'LMT', name: 'Lockheed Martin', price: 649.00, currency: 'USD' }
       ],
       follower: [
-        { ticker: '012450', name: '한화에어로스페이스', price: 185000, currency: 'KRW' },
+        { ticker: '012450', name: '한화에어로스페이스', price: 1149000, currency: 'KRW' },
         { ticker: '079550', name: 'LIG넥스원', price: 544000, currency: 'KRW' }
       ],
       nogo: [
@@ -801,7 +803,7 @@ const MOCK_DATA = {
         { ticker: 'JNJ', name: 'Johnson & Johnson', price: 215.00, currency: 'USD' }
       ],
       follower: [
-        { ticker: '207940', name: '삼성바이오로직스', price: 850000, currency: 'KRW' },
+        { ticker: '207940', name: '삼성바이오로직스', price: 1720000, currency: 'KRW' },
         { ticker: '068270', name: '셀트리온', price: 175000, currency: 'KRW' }
       ],
       nogo: [
@@ -901,11 +903,55 @@ const fetchJSON = async (url) => {
     return data;
   } catch (error) {
     console.error('❌ API Error:', error);
-    console.log('⚠️ Falling back to Mock Data');
-    // API 실패 시 Mock 데이터로 폴백
-    return fetchJSON(url.replace(API, ''));
+    // API 실패 시 mock 데이터로 폴백하지 않음
+    return null;
   }
 };
+
+// ========== 자동 가격 업데이트 ==========
+async function updateStockPrices() {
+  console.log('💰 Updating stock prices from API...');
+  
+  const BASE_URL = 'http://localhost:8125';
+  const allTickers = [];
+  
+  // 모든 티커 수집
+  for (const sector in MOCK_DATA.funnels) {
+    const funnel = MOCK_DATA.funnels[sector];
+    ['leader', 'follower', 'nogo'].forEach(category => {
+      if (funnel[category]) {
+        funnel[category].forEach(stock => {
+          allTickers.push({ sector, category, ticker: stock.ticker });
+        });
+      }
+    });
+  }
+  
+  // 각 티커의 최신 가격 가져오기
+  let updated = 0;
+  for (const item of allTickers) {
+    try {
+      const response = await fetch(`${BASE_URL}/api/chart/${item.ticker}?key=${ACCESS_KEY}`);
+      if (response.ok) {
+        const data = await response.json();
+        const latestPrice = data.indicators.current_price;
+        
+        // Mock 데이터 업데이트
+        const stocks = MOCK_DATA.funnels[item.sector][item.category];
+        const stock = stocks.find(s => s.ticker === item.ticker);
+        if (stock && latestPrice) {
+          stock.price = latestPrice;
+          updated++;
+          console.log(`  ✅ ${item.ticker}: ${latestPrice}`);
+        }
+      }
+    } catch (error) {
+      console.warn(`  ⚠️ ${item.ticker}: Failed to fetch (using cached price)`);
+    }
+  }
+  
+  console.log(`💰 Updated ${updated}/${allTickers.length} stock prices`);
+}
 
 // ========== 1. Market Regime ==========
 async function loadRegime() {
@@ -2111,6 +2157,11 @@ async function init() {
   console.log('🚀 Initializing Decision Stream v4.0...');
   
   try {
+    // 최신 주가 업데이트 (백그라운드)
+    updateStockPrices().catch(err => {
+      console.warn('⚠️ Stock price update failed (using cached prices):', err);
+    });
+    
     // Load data
     console.log('📊 Loading Market Regime...');
     await loadRegime();

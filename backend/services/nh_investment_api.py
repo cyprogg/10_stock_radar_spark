@@ -225,7 +225,7 @@ class NHInvestmentAPI:
 
 # ========== 사용 예제 ==========
 
-if __main__ == "__main__":
+if __name__ == "__main__":
     # NH투자증권 API 인스턴스 생성
     api = NHInvestmentAPI()
     

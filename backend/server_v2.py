@@ -81,17 +81,6 @@ def agent_test():
         return JSONResponse(status_code=404, content={"error": "agent_test.html not found"})
     return FileResponse(agent_test_path)
 
-@app.get("/{filename}")
-def serve_html(filename: str):
-    """HTML 파일 제공"""
-    if not filename.endswith(".html"):
-        return JSONResponse(status_code=404, content={"error": "Not found"})
-    
-    filepath = os.path.join(WEB_DIR, filename)
-    if not os.path.exists(filepath):
-        return JSONResponse(status_code=404, content={"error": f"{filename} not found"})
-    return FileResponse(filepath)
-
 # -----------------------
 # Utils / Mock Data
 # -----------------------
@@ -103,18 +92,18 @@ SECTORS = ["방산", "헬스케어", "AI 반도체", "전력", "에너지"]
 
 STOCKS = {
     "방산": [
-        {"ticker": "LMT", "name": "Lockheed Martin", "price": 445.50},
-        {"ticker": "012450", "name": "한화에어로스페이스", "price": 185000},
-        {"ticker": "079550", "name": "LIG넥스원", "price": 544000}
+        {"ticker": "LMT", "name": "Lockheed Martin", "price": 649.81},
+        {"ticker": "012450", "name": "한화에어로스페이스", "price": 1149000},
+        {"ticker": "079550", "name": "LIG넥스원", "price": 463000}
     ],
     "헬스케어": [
-        {"ticker": "JNJ", "name": "Johnson & Johnson", "price": 158.25},
-        {"ticker": "207940", "name": "삼성바이오로직스", "price": 850000},
-        {"ticker": "068270", "name": "셀트리온", "price": 175000}
+        {"ticker": "JNJ", "name": "Johnson & Johnson", "price": 244.99},
+        {"ticker": "207940", "name": "삼성바이오로직스", "price": 1720000},
+        {"ticker": "068270", "name": "셀트리온", "price": 244500}
     ],
     "AI 반도체": [
-        {"ticker": "005930", "name": "삼성전자", "price": 75000},
-        {"ticker": "NVDA", "name": "NVIDIA", "price": 875.00}
+        {"ticker": "005930", "name": "삼성전자", "price": 190000},
+        {"ticker": "NVDA", "name": "NVIDIA", "price": 187.98}
     ],
     "전력": [
         {"ticker": "NEE", "name": "NextEra Energy", "price": 58.30},
@@ -555,6 +544,170 @@ def agent_market_regime():
         )
 
 
+@app.get("/api/agent/sectors")
+def agent_sectors():
+    """
+    AI Agent가 실시간 섹터 분석 (Sector Scout)
+    """
+    if not agent_orchestrator or not agent_data_provider:
+        return JSONResponse(
+            status_code=503,
+            content={"error": "AI Agent system not initialized"}
+        )
+    
+    try:
+        # 한국 주요 섹터
+        sectors = ["방산", "헬스케어", "AI 반도체", "전력", "에너지"]
+        sectors_data = agent_data_provider.get_sectors_data(sectors)
+        
+        # Sector Scout Agent 실행
+        result = agent_orchestrator.sector_scout.rank_sectors(sectors_data)
+        
+        # 기존 /sectors 형식으로 변환
+        sectors_list = []
+        for sector_result in result:
+            sectors_list.append({
+                "sector": sector_result.get("sector", ""),
+                "flow_score": sector_result.get("flow_score", 0),
+                "flow_signal": sector_result.get("signal", "NORMAL"),
+                "duration": sector_result.get("duration", "-")
+            })
+        
+        return sorted(sectors_list, key=lambda x: x["flow_score"], reverse=True)
+        
+    except Exception as e:
+        print(f"❌ Sector 분석 오류: {e}")
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)}
+        )
+
+
+@app.get("/api/agent/funnel")
+def agent_funnel(sector: str):
+    """
+    AI Agent가 섹터별 종목 분류 (Stock Screener)
+    Leader, Follower, No-Go 실시간 분류
+    """
+    if not agent_orchestrator or not agent_data_provider:
+        return JSONResponse(
+            status_code=503,
+            content={"error": "AI Agent system not initialized"}
+        )
+    
+    try:
+        # 섹터별 종목 리스트
+        stocks_by_sector = {
+            "방산": ["LMT", "012450", "079550"],
+            "헬스케어": ["JNJ", "207940", "068270"],
+            "AI 반도체": ["005930", "NVDA", "000660"],
+            "전력": ["NEE", "015760"],
+            "에너지": ["XOM"]
+        }
+        
+        tickers = stocks_by_sector.get(sector, [])
+        if not tickers:
+            return {"leader": [], "follower": [], "no_go": []}
+        
+        # 종목 데이터 수집
+        stocks_data = agent_data_provider.get_stocks_data(tickers)
+        
+        # Stock Screener Agent 실행
+        result = agent_orchestrator.stock_screener.screen_stocks(stocks_data)
+        
+        # 기존 /funnel 형식으로 변환
+        leaders = []
+        followers = []
+        no_gos = []
+        
+        for stock in result.get("leaders", []):
+            leaders.append({
+                "ticker": stock.get("ticker", ""),
+                "name": stock.get("name", ""),
+                "price": stock.get("price", 0),
+                "currency": stock.get("currency", "KRW")
+            })
+        
+        for stock in result.get("followers", []):
+            followers.append({
+                "ticker": stock.get("ticker", ""),
+                "name": stock.get("name", ""),
+                "price": stock.get("price", 0),
+                "currency": stock.get("currency", "KRW")
+            })
+        
+        for stock in result.get("no_go", []):
+            no_gos.append({
+                "ticker": stock.get("ticker", ""),
+                "name": stock.get("name", ""),
+                "price": stock.get("price", 0),
+                "currency": stock.get("currency", "KRW"),
+                "reason": stock.get("reason", "Not recommended")
+            })
+        
+        return {
+            "leader": leaders,
+            "follower": followers,
+            "no_go": no_gos
+        }
+        
+    except Exception as e:
+        print(f"❌ Funnel 분석 오류: {e}")
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)}
+        )
+
+
+@app.get("/api/agent/market-intelligence")
+def agent_market_intelligence():
+    """
+    AI Agent가 생성하는 시장 해설 (Market Analyst)
+    """
+    if not agent_orchestrator or not agent_data_provider:
+        return JSONResponse(
+            status_code=503,
+            content={"error": "AI Agent system not initialized"}
+        )
+    
+    try:
+        # 시장 데이터 수집
+        market_data = agent_data_provider.get_market_data()
+        sectors = ["방산", "헬스케어", "AI 반도체", "전력", "에너지"]
+        sectors_data = agent_data_provider.get_sectors_data(sectors)
+        
+        # Market Analyst에서 상세 해설 생성
+        regime_result = agent_orchestrator.market_analyst.analyze(market_data)
+        sectors_result = agent_orchestrator.sector_scout.rank_sectors(sectors_data)
+        
+        # 종합 해설 생성
+        script = f"현재 시장은 {regime_result.get('state', 'UNKNOWN')} 국면입니다.\n\n"
+        
+        # SURGE 섹터 찾기
+        surge_sectors = [s for s in sectors_result if s.get("signal") == "SURGE"]
+        if surge_sectors:
+            sector_names = [s.get("sector", "") for s in surge_sectors]
+            script += f"자금이 {', '.join(sector_names)} 섹터로 집중되고 있습니다.\n\n"
+        
+        # Playbook 추가
+        script += f"전략: {regime_result.get('playbook', '관망')}\n"
+        
+        return {"script": script}
+        
+    except Exception as e:
+        print(f"❌ Market Intelligence 생성 오류: {e}")
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)}
+        )
+
+
 # -----------------------
 # Chart Analysis (Real Data)
 # -----------------------
@@ -758,6 +911,21 @@ def health():
         "version": "1.0.0",
         "ai_agent": agent_status
     }
+
+
+# -----------------------
+# Catch-all HTML Route (MUST BE LAST)
+# -----------------------
+@app.get("/{filename}")
+def serve_html(filename: str):
+    """HTML 파일 제공 (맨 마지막 라우트)"""
+    if not filename.endswith(".html"):
+        return JSONResponse(status_code=404, content={"error": "Not found"})
+    
+    filepath = os.path.join(WEB_DIR, filename)
+    if not os.path.exists(filepath):
+        return JSONResponse(status_code=404, content={"error": f"{filename} not found"})
+    return FileResponse(filepath)
 
 
 if __name__ == "__main__":

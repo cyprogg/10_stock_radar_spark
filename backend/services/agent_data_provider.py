@@ -188,32 +188,50 @@ class AgentDataProvider:
     
     def _get_stock_data(self, ticker: str) -> Optional[Dict[str, Any]]:
         """종목 데이터 생성"""
+        # 한국 주식 감지 (6자리 숫자)
+        is_korean_stock = ticker and ticker.isdigit() and len(ticker) == 6
+        
         # 미국 주식 감지 (알파벳으로 시작)
         is_us_stock = ticker and not ticker[0].isdigit()
         
-        # 미국 주식이고 실시간 데이터 사용 설정된 경우
-        if is_us_stock and self.us_stock_service:
+        # 실시간 데이터 사용 가능한 경우
+        if self.us_stock_service and (is_us_stock or is_korean_stock):
             try:
-                return self._get_us_stock_data_real(ticker)
+                if is_korean_stock:
+                    # 한국 주식: Yahoo Finance (.KS)
+                    return self._get_kr_stock_data_real(ticker)
+                else:
+                    # 미국 주식: Yahoo Finance
+                    return self._get_us_stock_data_real(ticker)
             except Exception as e:
                 print(f"⚠️ Failed to fetch real data for {ticker}: {e}")
                 print("   Falling back to mock data...")
         
-        # Mock 데이터 사용 (한국 주식 또는 실패 시)
+        # Mock 데이터 사용 (실패 시)
         return self._get_stock_data_mock(ticker)
     
     def _get_us_stock_data_real(self, ticker: str) -> Dict[str, Any]:
         """미국 주식 실제 데이터 조회 (Yahoo Finance)"""
-        # 실시간 가격 데이터 가져오기
-        price_data = self.us_stock_service.get_current_price(ticker)
-        
-        # 일봉 데이터 가져오기 (기술적 지표 계산용)
+        # 일봉 데이터 가져오기 (전일 종가용)
         daily_data = self.us_stock_service.get_daily_data(ticker, period="3mo")
+        
+        if not daily_data or len(daily_data) == 0:
+            raise Exception(f"No data available for {ticker}")
+        
+        # 전일 종가 = 일봉 데이터의 마지막 close
+        last_close = daily_data[-1]['close']
+        
+        # 종목명 가져오기
+        try:
+            price_data = self.us_stock_service.get_current_price(ticker)
+            stock_name = price_data['name']
+        except:
+            stock_name = ticker
         
         # 기술적 지표 계산
         closes = [d['close'] for d in daily_data[-60:]] if len(daily_data) >= 60 else []
-        ma20 = sum(closes[-20:]) / 20 if len(closes) >= 20 else price_data['price'] * 0.97
-        ma60 = sum(closes) / 60 if len(closes) >= 60 else price_data['price'] * 0.95
+        ma20 = sum(closes[-20:]) / 20 if len(closes) >= 20 else last_close * 0.97
+        ma60 = sum(closes) / 60 if len(closes) >= 60 else last_close * 0.95
         
         # ATR 계산 (간단 버전)
         highs = [d['high'] for d in daily_data[-20:]] if len(daily_data) >= 20 else []
@@ -222,7 +240,7 @@ class AgentDataProvider:
             ranges = [h - l for h, l in zip(highs, lows)]
             atr_20d = sum(ranges) / len(ranges)
         else:
-            atr_20d = price_data['price'] * 0.03
+            atr_20d = last_close * 0.03
         
         # Volatility 계산
         if len(closes) >= 20:
@@ -234,23 +252,106 @@ class AgentDataProvider:
         # Agent가 필요한 형식으로 변환
         return {
             "ticker": ticker,
-            "name": price_data['name'],
+            "name": stock_name,
             "sector": self._guess_sector(ticker),  # 섹터는 추정
             "currency": "USD",
-            "current_price": price_data['price'],
+            "current_price": round(last_close, 2),  # 전일 종가
             "support_levels": [
-                round(price_data['price'] * 0.97, 2),
-                round(price_data['price'] * 0.94, 2)
+                round(last_close * 0.97, 2),
+                round(last_close * 0.94, 2)
             ],
             "resistance_levels": [
-                round(price_data['price'] * 1.03, 2),
-                round(price_data['price'] * 1.06, 2)
+                round(last_close * 1.03, 2),
+                round(last_close * 1.06, 2)
             ],
             "ma20": round(ma20, 2),
             "ma60": round(ma60, 2),
             "atr_20d": round(atr_20d, 2),
             "volatility": round(volatility, 1),
             # 나머지는 기본값 (추후 실제 데이터로 대체 가능)
+            "flow_score": 85,
+            "cycle_fit": True,
+            "quality_score": 90,
+            "governance_score": 85,
+            "narrative_score": 80,
+            "risk_score": 18,
+            "time_fit": True,
+            "value_score": 70,
+            "momentum_quality": {
+                "sector_sync": True,
+                "inst_participation": True,
+                "news_type": "fundamental",
+                "group_rally": True
+            },
+            "gap_up_with_distribution": False,
+            "single_rumor": False,
+            "late_theme": False,
+            "no_structure": False,
+            "retail_dominance": 0.3
+        }
+    
+    def _get_kr_stock_data_real(self, ticker: str) -> Dict[str, Any]:
+        """한국 주식 실제 데이터 조회 (Yahoo Finance .KS)"""
+        # Yahoo Finance는 한국 주식에 .KS 접미사 사용
+        yahoo_ticker = f"{ticker}.KS"
+        
+        # 일봉 데이터 가져오기 (전일 종가용)
+        daily_data = self.us_stock_service.get_daily_data(yahoo_ticker, period="3mo")
+        
+        if not daily_data or len(daily_data) == 0:
+            raise Exception(f"No data available for {ticker}")
+        
+        # 전일 종가 = 일봉 데이터의 마지막 close
+        last_close = daily_data[-1]['close']
+        
+        # 종목명 가져오기
+        try:
+            price_data = self.us_stock_service.get_current_price(yahoo_ticker)
+            stock_name = price_data['name']
+        except:
+            stock_name = ticker
+        
+        # 기술적 지표 계산
+        closes = [d['close'] for d in daily_data[-60:]] if len(daily_data) >= 60 else []
+        ma20 = sum(closes[-20:]) / 20 if len(closes) >= 20 else last_close * 0.97
+        ma60 = sum(closes) / 60 if len(closes) >= 60 else last_close * 0.95
+        
+        # ATR 계산 (간단 버전)
+        highs = [d['high'] for d in daily_data[-20:]] if len(daily_data) >= 20 else []
+        lows = [d['low'] for d in daily_data[-20:]] if len(daily_data) >= 20 else []
+        if highs and lows:
+            ranges = [h - l for h, l in zip(highs, lows)]
+            atr_20d = sum(ranges) / len(ranges)
+        else:
+            atr_20d = last_close * 0.03
+        
+        # Volatility 계산
+        if len(closes) >= 20:
+            returns = [(closes[i] - closes[i-1]) / closes[i-1] for i in range(1, len(closes))]
+            volatility = (sum(r**2 for r in returns) / len(returns)) ** 0.5 * 100
+        else:
+            volatility = 3.0
+        
+        # Agent가 필요한 형식으로 변환 (한국 주식은 KRW)
+        return {
+            "ticker": ticker,
+            "name": stock_name,
+            "sector": self._guess_sector_kr(ticker),  # 한국 주식 섹터 추정
+            "currency": "KRW",
+            "current_price": round(last_close, 0),  # 전일 종가
+            "support_levels": [
+                round(last_close * 0.97, 0),
+                round(last_close * 0.94, 0)
+            ],
+            "resistance_levels": [
+                round(last_close * 1.03, 0),
+                round(last_close * 1.06, 0)
+            ],
+            "ma20": round(ma20, 0),
+            "ma60": round(ma60, 0),
+            "atr_20d": round(atr_20d, 0),
+            "volatility": round(volatility, 1),
+            # 나머지는 기본값
             "flow_score": 85,
             "cycle_fit": True,
             "quality_score": 90,
@@ -291,6 +392,25 @@ class AgentDataProvider:
             'GOOGL': 'IT',
             'AMZN': 'IT',
             'TSLA': '전기차'
+        }
+        return sector_map.get(ticker, 'IT')
+    
+    def _guess_sector_kr(self, ticker: str) -> str:
+        """한국 주식 티커로 섹터 추정"""
+        sector_map = {
+            '005930': '반도체',      # 삼성전자
+            '000660': '반도체',      # SK하이닉스
+            '207940': '바이오',      # 삼성바이오로직스
+            '068270': '제약',        # 셀트리온
+            '035720': 'IT',          # 카카오
+            '035420': 'IT',          # NAVER
+            '051910': '화학',        # LG화학
+            '006400': '철강',        # 삼성SDI
+            '005380': '자동차',      # 현대차
+            '000270': '항공',        # 기아
+            '012330': '자동차부품',  # 현대모비스
+            '079550': '방산',        # LIG넥스원
+            '047810': '방산',        # 한화에어로스페이스
         }
         return sector_map.get(ticker, 'IT')
     

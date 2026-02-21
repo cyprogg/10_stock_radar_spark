@@ -97,6 +97,7 @@ class AgentOrchestrator:
             "timestamp": market_regime.get("sources", [{}])[0].get("timestamp", ""),
             "market_regime": market_regime,
             "ranked_sectors": ranked_sectors[:10],  # 상위 10개 섹터
+            "recommendations": final_recommendations,  # 최종 추천 종목
             "screened_stocks": {
                 "leaders": screened_stocks['leaders'][:10],
                 "followers": screened_stocks['followers'][:10],

@@ -263,8 +263,8 @@ class StockScreener:
         
         return reasons[:2]
     
-    def _calculate_confidence(self, scores: Dict[str, Any], momentum: int) -> int:
-        """신뢰도 계산 (0~100)"""
+    def _calculate_confidence(self, scores: Dict[str, Any], momentum: int) -> float:
+        """신뢰도 계산 (0.0~1.0)"""
         # 핵심 점수들의 평균
         key_scores = [
             scores['1_flow'],
@@ -281,7 +281,9 @@ class StockScreener:
         if scores.get('7_time_fit', False):
             avg_score += 5
         
-        return int(min(100, max(0, avg_score)))
+        # 0.0~1.0 범위로 정규화
+        confidence = min(1.0, max(0.0, avg_score / 100.0))
+        return confidence
     
     def screen_stocks(self, stocks_data: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
         """

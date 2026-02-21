@@ -130,15 +130,15 @@ class MarketRegimeAnalyst:
             else:
                 return "관망 국면. 시장 회복 신호 확인 후 재진입."
     
-    def _calculate_confidence(self, positive: List[str], negative: List[str]) -> int:
-        """신뢰도 계산 (0~100)"""
+    def _calculate_confidence(self, positive: List[str], negative: List[str]) -> float:
+        """신뢰도 계산 (0.0~1.0)"""
         total_signals = len(positive) + len(negative)
         if total_signals == 0:
-            return 50
+            return 0.5
         
         # 긍정 신호가 많을수록 신뢰도 상승
-        confidence = 50 + (len(positive) - len(negative)) * 10
-        return max(0, min(100, confidence))
+        confidence = 0.5 + (len(positive) - len(negative)) * 0.1
+        return max(0.0, min(1.0, confidence))
     
     def get_risk_state(self, market_data: Dict[str, Any]) -> str:
         """간단한 RISK_ON/RISK_OFF 상태만 반환"""
