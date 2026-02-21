@@ -13,10 +13,14 @@ build/
 dist/
 *.egg-info/
 
-# Environment
+# Environment & Secrets
 .env
 .env.local
 .env.*.local
+secrets/
+credentials/
+*.key
+*.pem
 
 # IDE
 .vscode/
@@ -28,6 +32,46 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# Database (keep local)
+*.db
+*.sqlite
+*.sqlite3
+stock_radar.db*
+
+# Logs
+logs/
+*.log
+
+# Backups & Temp
+*.backup
+*.bak
+*.tmp
+*.orig
+temp/
+tmp/
+
+# ============================================================
+# 🔐 INTERNAL DOCUMENTATION - Know-How (Never Commit)
+# ============================================================
+ALGORITHM_*.md
+AI_AGENT_ARCHITECTURE.md
+API_KEY_MANAGEMENT.md
+*.internal
+INTERNAL_*.md
+
+# Sensitive benchmark data
+performance_data/
+benchmark_results/
+test_results/
+test_output/
+
+# Frontend (if applicable)
+node_modules/
+.next/
+out/
+dist/
+
 
 # Logs
 *.log

@@ -1,24 +1,61 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 import os
 from datetime import date, datetime
 import traceback
+import logging
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # AI Agent imports
 from agents.orchestrator import AgentOrchestrator
 from services.agent_data_provider import AgentDataProvider
 from services.krx_stock_api import KRXStockAPI
 
+# Database imports
+from database import init_db, get_db
+
+# Router imports
+from routers.auth import router as auth_router
+from dependencies.auth import get_current_user
+
 # -----------------------
 # Config
 # -----------------------
 ACCESS_KEY = "ds-test-2026"
 
+# Logging setup
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger("stock_radar")
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 WEB_DIR = os.path.join(BASE_DIR, "..")  # 상위 디렉토리 (index.html 위치)
 
-app = FastAPI(title="Decision Stream | 중기 스윙 투자 시스템")
+app = FastAPI(
+    title="Stock Radar Spark | AI 투자 분석 시스템",
+    description="5개 AI Agent 기반 주식 분석 플랫폼",
+    version="1.0.0-beta"
+)
+
+# -----------------------
+# Database 초기화
+# -----------------------
+try:
+    init_db()
+    logger.info("✅ 데이터베이스 초기화 완료")
+except Exception as e:
+    logger.error(f"⚠️ 데이터베이스 초기화 실패: {e}")
+
+# -----------------------
+# 인증 라우터 마운트
+# -----------------------
+app.include_router(auth_router)
 
 # -----------------------
 # AI Agent 초기화
@@ -27,10 +64,10 @@ try:
     agent_orchestrator = AgentOrchestrator()
     agent_data_provider = AgentDataProvider(use_real_us_data=True)  # 실시간 미국 주식 데이터 사용
     krx_api = KRXStockAPI()  # 한국거래소 API (20분 지연)
-    print("✅ AI Agent 시스템 초기화 완료")
-    print("✅ KRX API 초기화 완료 (한국 주식 20분 지연 시세)")
+    logger.info("✅ AI Agent 시스템 초기화 완료")
+    logger.info("✅ KRX API 초기화 완료 (한국 주식 20분 지연 시세)")
 except Exception as e:
-    print(f"⚠️ AI Agent 초기화 실패: {e}")
+    logger.error(f"⚠️ AI Agent 초기화 실패: {e}")
     agent_orchestrator = None
     agent_data_provider = None
     krx_api = None
@@ -54,8 +91,12 @@ async def keycheck(req: Request, call_next):
     if req.url.path == "/" or req.url.path.endswith(".html") or req.url.path.endswith(".css") or req.url.path.endswith(".js"):
         return await call_next(req)
     
-    # Allow chart API without key (public access)
-    if req.url.path.startswith("/api/chart/"):
+    # Allow public APIs without key
+    if req.url.path.startswith("/api/chart/") or req.url.path.startswith("/api/health") or req.url.path.startswith("/api/status"):
+        return await call_next(req)
+    
+    # Allow auth endpoints without key
+    if req.url.path.startswith("/api/auth/"):
         return await call_next(req)
 
     client_key = req.query_params.get("key")
@@ -121,6 +162,73 @@ CHECKLIST_ITEMS = [
     "이벤트 리스크 없음",
     "구조적 눌림 구간"
 ]
+
+# -----------------------
+# 모니터링 API (인증 불필요)
+# -----------------------
+
+@app.get("/api/health")
+async def health_check():
+    """
+    시스템 헬스 체크
+    - 데이터베이스 상태
+    - Agent 시스템 상태
+    - API 서비스 상태
+    """
+    db_ok = False
+    agent_ok = agent_orchestrator is not None
+    
+    try:
+        db = next(get_db())
+        db.execute("SELECT 1")
+        db_ok = True
+        db.close()
+    except:
+        db_ok = False
+    
+    all_ok = db_ok and agent_ok
+    status_code = "healthy" if all_ok else "degraded"
+    
+    return {
+        "status": status_code,
+        "timestamp": datetime.utcnow().isoformat(),
+        "services": {
+            "database": "ok" if db_ok else "error",
+            "ai_agents": "ok" if agent_ok else "error",
+            "api_server": "ok"
+        }
+    }
+
+
+@app.get("/api/status")
+async def status():
+    """
+    시스템 상태 상세 정보
+    베타테스터 모니터링용
+    """
+    return {
+        "app_name": "Stock Radar Spark",
+        "version": "1.0.0-beta",
+        "environment": "development" if os.getenv("DEBUG") == "true" else "production",
+        "timestamp": datetime.utcnow().isoformat(),
+        "active_users": "베타테스터 5명 제한",
+        "database": {
+            "type": "SQLite (development)" if "sqlite" in os.getenv("DATABASE_URL", "") else "PostgreSQL",
+            "status": "running"
+        },
+        "ai_agents": {
+            "market_regime": agent_orchestrator is not None,
+            "sector_scout": agent_orchestrator is not None,
+            "stock_screener": agent_orchestrator is not None,
+            "trade_plan_builder": agent_orchestrator is not None,
+            "devils_advocate": agent_orchestrator is not None
+        },
+        "data_sources": {
+            "yahoo_finance": "active",
+            "opendart_api": bool(os.getenv("OPENDART_API_KEY")),
+            "krx_api": "20분 지연"
+        }
+    }
 
 # -----------------------
 # Core APIs
