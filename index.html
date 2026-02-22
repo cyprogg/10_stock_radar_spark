@@ -707,9 +707,8 @@ const isDevelopment = window.location.hostname === 'localhost' ||
                      window.location.protocol === 'file:' ||
                      window.location.hostname === '';
 
-const API = isDevelopment 
-  ? "http://127.0.0.1:8125" 
-  : "https://decision-stream-backend.railway.app"; // ⚠️ Railway 배포 후 실제 도메인으로 변경
+// 상대 경로 사용 - CORS 문제 해결
+const API = ''; // 상대 경로만 사용
 
 const ACCESS_KEY = "ds-test-2026";
 const USE_MOCK_DATA = false; // ⬅️ 실제 API 데이터 사용
@@ -725,7 +724,7 @@ let funnelData = null;
 // ========== Helpers ==========
 const $ = sel => document.querySelector(sel);
 const $$ = sel => document.querySelectorAll(sel);
-const withKey = p => `${API}${p}${p.includes('?')?'&':'?'}key=${ACCESS_KEY}`;
+const withKey = p => `${p}${p.includes('?')?'&':'?'}key=${ACCESS_KEY}`;  // 상대 경로 사용
 
 // 통화별 가격 표시 함수
 const formatPrice = (price, currency) => {
@@ -912,7 +911,7 @@ const fetchJSON = async (url) => {
 async function updateStockPrices() {
   console.log('💰 Updating stock prices from API...');
   
-  const BASE_URL = 'http://localhost:8125';
+  // 상대 경로 사용
   const allTickers = [];
   
   // 모든 티커 수집
@@ -931,7 +930,7 @@ async function updateStockPrices() {
   let updated = 0;
   for (const item of allTickers) {
     try {
-      const response = await fetch(`${BASE_URL}/api/chart/${item.ticker}?key=${ACCESS_KEY}`);
+      const response = await fetch(`/api/chart/${item.ticker}?key=${ACCESS_KEY}`);
       if (response.ok) {
         const data = await response.json();
         const latestPrice = data.indicators.current_price;

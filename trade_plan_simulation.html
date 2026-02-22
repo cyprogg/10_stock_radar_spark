@@ -422,6 +422,24 @@
                         <label class="form-label" id="price-label">현재 주가 (₩)</label>
                         <input type="number" id="current-price" class="form-control" placeholder="예: 75000" value="">
                         
+                        <!-- 전일 종가 & 일일 수익률 표시 -->
+                        <div id="price-info" style="margin-top: 8px; padding: 8px; background: rgba(102,126,234,0.1); border-radius: 4px; font-size: 12px; color: #cbd5e0; display: none;">
+                            <div style="display: flex; justify-content: space-between; gap: 16px;">
+                                <div>
+                                    <span style="color: #a0aec0;">전일 종가:</span>
+                                    <span id="prev-close-value" style="color: #90cdf4; font-weight: 600;">-</span>
+                                </div>
+                                <div>
+                                    <span style="color: #a0aec0;">일일 수익률:</span>
+                                    <span id="daily-change-pct" style="font-weight: 600;">-</span>
+                                </div>
+                                <div>
+                                    <span style="color: #a0aec0;">데이터 소스:</span>
+                                    <span id="price-source" style="color: #a0aec0; font-size: 11px;">-</span>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <!-- 디버깅 정보 표시 -->
                         <div id="debug-info" style="margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; font-size: 11px; color: #aaa; display: none;">
                             <div style="margin-bottom: 4px;">
@@ -636,50 +654,50 @@
 
     <script>
         // Configuration
-        const API_BASE = 'http://127.0.0.1:8126';
+        // 상대 경로 사용 - CORS 문제 해결
         const ACCESS_KEY = 'ds-test-2026';
 
-        // Stock data by sector
+        // Stock data by sector - API 호출로 업데이트됨 (Mock 제거)
         const STOCK_DATABASE = {
             '방산': [
-                { ticker: 'LMT', name: 'Lockheed Martin', price: 649.00 },
-                { ticker: '012450', name: '한화에어로스페이스', price: 1149000 },
-                { ticker: '079550', name: 'LIG넥스원', price: 544000 }
+                { ticker: 'LMT', name: 'Lockheed Martin', price: null },
+                { ticker: '012450', name: '한화에어로스페이스', price: null },
+                { ticker: '079550', name: 'LIG넥스원', price: null }
             ],
             '헬스케어': [
-                { ticker: 'JNJ', name: 'Johnson & Johnson', price: 215.00 },
-                { ticker: '207940', name: '삼성바이오로직스', price: 1720000 },
-                { ticker: '068270', name: '셀트리온', price: 175000 }
+                { ticker: 'JNJ', name: 'Johnson & Johnson', price: null },
+                { ticker: '207940', name: '삼성바이오로직스', price: null },
+                { ticker: '068270', name: '셀트리온', price: null }
             ],
             '반도체': [
-                { ticker: '005930', name: '삼성전자', price: 190000 },
-                { ticker: '000660', name: 'SK하이닉스', price: 142000 },
-                { ticker: '042700', name: '한미반도체', price: 85000 }
+                { ticker: '005930', name: '삼성전자', price: null },
+                { ticker: '000660', name: 'SK하이닉스', price: null },
+                { ticker: '042700', name: '한미반도체', price: null }
             ],
             '2차전지': [
-                { ticker: '373220', name: 'LG에너지솔루션', price: 450000 },
-                { ticker: '096770', name: 'SK이노베이션', price: 145000 },
-                { ticker: '051910', name: 'LG화학', price: 380000 }
+                { ticker: '373220', name: 'LG에너지솔루션', price: null },
+                { ticker: '096770', name: 'SK이노베이션', price: null },
+                { ticker: '051910', name: 'LG화학', price: null }
             ],
             '바이오': [
-                { ticker: '207940', name: '삼성바이오로직스', price: 850000 },
-                { ticker: '068270', name: '셀트리온', price: 175000 },
-                { ticker: '326030', name: 'SK바이오팜', price: 92000 }
+                { ticker: '207940', name: '삼성바이오로직스', price: null },
+                { ticker: '068270', name: '셀트리온', price: null },
+                { ticker: '326030', name: 'SK바이오팜', price: null }
             ],
             '자동차': [
-                { ticker: '005380', name: '현대자동차', price: 235000 },
-                { ticker: '000270', name: '기아', price: 98000 },
-                { ticker: '012330', name: '현대모비스', price: 265000 }
+                { ticker: '005380', name: '현대자동차', price: null },
+                { ticker: '000270', name: '기아', price: null },
+                { ticker: '012330', name: '현대모비스', price: null }
             ],
             '화학': [
-                { ticker: '051910', name: 'LG화학', price: 380000 },
-                { ticker: '009830', name: '한화솔루션', price: 42000 },
-                { ticker: '011170', name: '롯데케미칼', price: 145000 }
+                { ticker: '051910', name: 'LG화학', price: null },
+                { ticker: '009830', name: '한화솔루션', price: null },
+                { ticker: '011170', name: '롯데케미칼', price: null }
             ],
             '조선': [
-                { ticker: '009540', name: '한국조선해양', price: 145000 },
-                { ticker: '010140', name: '삼성중공업', price: 9800 },
-                { ticker: '042660', name: '한화오션', price: 31000 }
+                { ticker: '009540', name: '한국조선해양', price: null },
+                { ticker: '010140', name: '삼성중공업', price: null },
+                { ticker: '042660', name: '한화오션', price: null }
             ]
         };
 
@@ -692,7 +710,6 @@
 
         async function loadStockPrices() {
             try {
-                const BASE_URL = 'http://localhost:8126';
                 const allTickers = [];
                 
                 // 모든 티커 수집
@@ -703,42 +720,97 @@
                 }
                 
                 console.log(`💰 Fetching prices for ${allTickers.length} stocks...`);
+                const startTime = Date.now();
                 
                 const stocks = {};
                 let successCount = 0;
                 let failCount = 0;
+                const failedTickers = [];
                 
-                // 각 티커의 최신 가격 가져오기
-                for (const ticker of allTickers) {
-                    try {
-                        const response = await fetch(`${BASE_URL}/api/chart/${ticker}`);
-                        if (response.ok) {
-                            const data = await response.json();
-                            stocks[ticker] = {
-                                price: data.indicators.current_price,
-                                market: data.currency === 'USD' ? 'US' : 'KR'
-                            };
-                            successCount++;
-                        } else {
-                            failCount++;
-                        }
-                    } catch (error) {
+                // Helper: 타임아웃이 있는 fetch
+                const fetchWithTimeout = (url, timeoutMs = 10000) => {
+                    return new Promise((resolve, reject) => {
+                        const timer = setTimeout(() => reject(new Error('Timeout')), timeoutMs);
+                        fetch(url)
+                            .then(response => {
+                                clearTimeout(timer);
+                                resolve(response);
+                            })
+                            .catch(error => {
+                                clearTimeout(timer);
+                                reject(error);
+                            });
+                    });
+                };
+                
+                // 병렬로 API 호출 (상대 경로 사용)
+                const pricePromises = allTickers.map(ticker =>
+                    fetchWithTimeout(`/api/price/${ticker}`)
+                        .then(response => {
+                            if (response.ok) {
+                                return response.json().then(data => ({
+                                    ticker,
+                                    price: data.price,
+                                    previous_close: data.previous_close || data.price,
+                                    currency: data.currency,
+                                    name: data.name,
+                                    source: data.source,
+                                    success: true
+                                }));
+                            } else {
+                                console.error(`⚠️ API 응답 오류 ${ticker}: ${response.status}`);
+                                return { ticker, success: false, error: `HTTP ${response.status}` };
+                            }
+                        })
+                        .catch(error => {
+                            console.error(`⚠️ API 요청 실패 ${ticker}: ${error.message}`);
+                            return { ticker, success: false, error: error.message };
+                        })
+                );
+                
+                const results = await Promise.all(pricePromises);
+                
+                results.forEach(result => {
+                    if (result.success) {
+                        const dailyChange = ((result.price - result.previous_close) / result.previous_close * 100).toFixed(2);
+                        stocks[result.ticker] = {
+                            price: result.price,
+                            previous_close: result.previous_close,
+                            daily_change_pct: parseFloat(dailyChange),
+                            market: result.currency === 'USD' ? 'US' : 'KR',
+                            currency: result.currency,
+                            name: result.name,
+                            source: result.source
+                        };
+                        successCount++;
+                    } else {
                         failCount++;
+                        failedTickers.push(result.ticker);
                     }
-                }
+                });
                 
                 const updateTime = new Date().toLocaleString('ko-KR');
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
                 lastPriceUpdate = updateTime;
                 
-                console.log(`✅ 주가 데이터 로드 완료 (업데이트: ${updateTime})`);
+                console.log(`✅ 주가 데이터 로드 완료 (${elapsed}초)`);
                 console.log(`   - 성공: ${successCount}개, 실패: ${failCount}개`);
+                if (failCount > 0) {
+                    console.error(`❌ 실패한 티커: ${failedTickers.join(', ')}`);
+                }
+                console.log(`   - 업데이트: ${updateTime}`);
+                console.log(`   📊 Stocks:`, stocks);
+                
+                // 모든 티커가 로드되지 않으면 에러
+                if (failCount > 0) {
+                    console.error(`⚠️⚠️ ${failCount}개 종목 데이터 로드 실패! 확인 필요`);
+                }
                 
                 updatePriceUpdateBadge(updateTime);
                 
-                return { stocks, updateTime, successCount, failCount };
+                return { stocks, updateTime, successCount, failCount, failedTickers };
             } catch (error) {
-                console.warn('주가 데이터 로드 실패:', error);
-                console.warn('⚠️  기본 주가를 사용합니다.');
+                console.error('❌ 주가 데이터 로드 전체 실패:', error);
                 return null;
             }
         }
@@ -755,40 +827,50 @@
         async function applyStockPrices() {
             const prices = await loadStockPrices();
             
-            if (prices) {
-                let updateCount = 0;
-                
-                // STOCK_DATABASE 업데이트
-                for (const sector in STOCK_DATABASE) {
-                    STOCK_DATABASE[sector].forEach(stock => {
-                        if (prices.stocks && prices.stocks[stock.ticker]) {
-                            // stocks 정보가 있으면 사용 (시장 정보 포함)
-                            const stockData = prices.stocks[stock.ticker];
-                            const oldPrice = stock.price;
-                            stock.price = stockData.price;
-                            stock.market = stockData.market; // 시장 정보 추가
-                            
-                            if (oldPrice !== stock.price) {
-                                const currency = stockData.market === 'US' ? '$' : '₩';
-                                console.log(`📈 ${stock.name} (${stock.ticker}): ${currency}${oldPrice} → ${currency}${stock.price}`);
-                                updateCount++;
-                            }
-                        } else if (prices.prices && prices.prices[stock.ticker]) {
-                            // 구 버전 호환 (prices만 있는 경우)
-                            const oldPrice = stock.price;
-                            stock.price = prices.prices[stock.ticker];
-                            
-                            if (oldPrice !== stock.price) {
-                                console.log(`📈 ${stock.name} (${stock.ticker}): ${oldPrice} → ${stock.price}`);
-                                updateCount++;
-                            }
+            console.log('🔍 applyStockPrices() - prices object:', prices);
+            
+            if (!prices) {
+                // 전체 로드 실패
+                console.error('❌❌ 전체 API 요청 실패! 서버 확인 필요');
+                alert(`🚨 주가 데이터 로드 실패!\n\n해결 방법:\n1. 서버 실행 확인: python backend/server_v2.py\n2. 캐시 파일 확인: backend/data/stock_prices_cache.json\n3. 포트 확인: http://localhost:8000/api/price/005930\n4. F12 콘솔 에러 확인`);
+                return;
+            }
+            
+            if (prices.failCount > 0) {
+                // 부분 실패
+                console.error(`⚠️ ${prices.failCount}개 종목 데이터 로드 실패: ${prices.failedTickers.join(', ')}`);
+            }
+            
+            cachedPrices = prices;
+            console.log('✅ cachedPrices 저장 완료:', cachedPrices);
+            
+            let updateCount = 0;
+            
+            // STOCK_DATABASE 업데이트
+            for (const sector in STOCK_DATABASE) {
+                STOCK_DATABASE[sector].forEach(stock => {
+                    if (prices.stocks && prices.stocks[stock.ticker]) {
+                        const stockData = prices.stocks[stock.ticker];
+                        const oldPrice = stock.price;
+                        stock.price = stockData.price;
+                        stock.market = stockData.market;
+                        
+                        if (oldPrice !== stock.price) {
+                            const currency = stockData.market === 'US' ? '✓' : '✓';
+                            console.log(`📈 ${stock.name} (${stock.ticker}): API 데이터 적용`);
+                            updateCount++;
                         }
-                    });
-                }
-                
-                console.log(`✅ ${updateCount}개 종목 주가 업데이트 완료`);
-            } else {
-                console.log('⚠️  기본 주가를 사용합니다.');
+                    } else {
+                        // 데이터 로드 실패한 항목
+                        console.error(`❌ 데이터 없음: ${stock.ticker} ${stock.name}`);
+                    }
+                });
+            }
+            
+            console.log(`✅ ${updateCount}개 종목 API 데이터 적용 완료`);
+            
+            if (prices.failCount === 0) {
+                console.log('🎉 모든 종목 데이터 로드 성공!');
             }
         }
 
@@ -875,11 +957,12 @@
                     const stockInDB = STOCK_DATABASE[sector]?.find(s => s.ticker === ticker);
                     
                     if (stockInDB) {
-                        // DB에 있으면 선택
+                        // DB에 있으면 선택 (업데이트된 가격 사용)
                         stockSelect.value = ticker;
                         document.getElementById('current-price').value = stockInDB.price;
+                        console.log(`✅ Loading ${ticker}: ${stockInDB.price}`);
                     } else if (name && ticker && price) {
-                        // DB에 없으면 수동으로 옵션 추가
+                        // DB에 없으면 수동으로 옵션 추가하고 실시간 가격 로드
                         const option = document.createElement('option');
                         option.value = ticker;
                         option.textContent = `${name} (${ticker})`;
@@ -1049,6 +1132,7 @@
             const stockSelect = document.getElementById('stock');
             const selectedOption = stockSelect.options[stockSelect.selectedIndex];
             const priceInput = document.getElementById('current-price');
+            const priceInfo = document.getElementById('price-info');
             const debugInfo = document.getElementById('debug-info');
             const debugText = document.getElementById('debug-text');
             
@@ -1058,32 +1142,74 @@
             
             console.log('Selected option:', selectedOption);
             console.log('Selected value:', stockSelect.value);
-            console.log('Dataset price:', selectedOption?.dataset?.price);
+            console.log('Cached prices:', cachedPrices);
             
             debugMsg += `선택 인덱스: ${stockSelect.selectedIndex}<br>`;
             debugMsg += `선택 값: ${stockSelect.value}<br>`;
             debugMsg += `옵션 텍스트: ${selectedOption?.textContent}<br>`;
-            debugMsg += `Dataset.price: ${selectedOption?.dataset?.price || '없음'}<br>`;
+            debugMsg += `캐시된 가격: ${cachedPrices ? 'O' : 'X'}<br>`;
             
             // 종목이 선택되지 않은 경우
             if (!stockSelect.value) {
                 console.log('No stock selected');
                 priceInput.value = '';
+                priceInfo.style.display = 'none';
                 debugMsg += `<span style="color: #fc8181;">❌ 종목 선택 안됨</span>`;
                 debugText.innerHTML = debugMsg;
                 return;
             }
             
-            // dataset.price가 있는 경우 자동 입력
-            if (selectedOption && selectedOption.dataset && selectedOption.dataset.price) {
-                const price = selectedOption.dataset.price;
-                console.log('✅ Setting price to:', price);
-                priceInput.value = price;
-                debugMsg += `<span style="color: #48bb78;">✅ 주가 자동 입력: ${price}</span>`;
+            const ticker = stockSelect.value;
+            let price = null;
+            let previousClose = null;
+            let dailyChange = null;
+            let source = 'Mock';
+            
+            // 캐시된 데이터에서 가격 조회 (API 필수)
+            if (cachedPrices && cachedPrices.stocks && cachedPrices.stocks[ticker]) {
+                const stockData = cachedPrices.stocks[ticker];
+                price = stockData.price;
+                previousClose = stockData.previous_close || stockData.price;
+                dailyChange = stockData.daily_change_pct;
+                source = stockData.source || 'Cache (20분지연)';
+                console.log(`✅ Found cached price for ${ticker}:`, stockData);
+                debugMsg += `<span style="color: #48bb78;">✅ API 데이터 발견: ${price}</span><br>`;
+                debugMsg += `전일 종가: ${previousClose}<br>`;
+                debugMsg += `일일 수익률: ${dailyChange}%<br>`;
             } else {
-                console.log('❌ No price found in dataset');
+                // API 데이터 없음 = 에러
+                console.error(`❌ API 데이터 로드 실패: ${ticker}`);
                 priceInput.value = '';
-                debugMsg += `<span style="color: #fc8181;">❌ Dataset에 가격 없음</span>`;
+                priceInfo.style.display = 'none';
+                debugMsg += `<span style="color: #fc8181;">❌ API 데이터 없음 - 서버 확인 필요</span><br>`;
+                debugMsg += `<span style="font-size: 12px;">API URL: /api/price/${ticker}</span>`;
+                debugText.innerHTML = debugMsg;
+                
+                // 사용자 알림
+                alert(`⚠️ ${selectedOption.textContent} 주가를 불러올 수 없습니다.\n\n상황:\n- 부팅: 30초 대기\n- 중단: 서버 재시작\n- 필요시: F12 콘솔 확인`);
+                return;
+            }
+            
+            // UI 업데이트
+            if (price) {
+                priceInput.value = price;
+                console.log(`✅ Set price to: ${price}`);
+                
+                // 전일 종가 정보 표시
+                if (previousClose) {
+                    priceInfo.style.display = 'block';
+                    document.getElementById('prev-close-value').textContent = previousClose.toLocaleString();
+                    
+                    // 일일 수익률 계산 및 색상 표시
+                    if (dailyChange !== null) {
+                        const changeElement = document.getElementById('daily-change-pct');
+                        changeElement.textContent = dailyChange >= 0 ? `+${dailyChange.toFixed(2)}%` : `${dailyChange.toFixed(2)}%`;
+                        changeElement.style.color = dailyChange >= 0 ? '#48bb78' : '#f56565';  // Green or Red
+                    }
+                    
+                    // 데이터 소스 표시 (API 또는 캐시 명시)
+                    document.getElementById('price-source').textContent = source;
+                }
             }
             
             debugText.innerHTML = debugMsg;

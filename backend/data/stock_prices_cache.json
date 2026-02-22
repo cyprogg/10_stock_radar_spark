@@ -1,0 +1,30 @@
+{
+  "korean_stocks": {
+    "005930": {"name": "삼성전자", "current_price": 190300, "previous_close": 188900, "currency": "KRW", "timestamp": "2026-02-22T09:00:00Z"},
+    "000660": {"name": "SK하이닉스", "current_price": 145000, "previous_close": 144500, "currency": "KRW", "timestamp": "2026-02-22T09:00:00Z"},
+    "012450": {"name": "한화에어로스페이스", "current_price": 1251000, "previous_close": 1152000, "currency": "KRW", "timestamp": "2026-02-22T09:00:00Z"},
+    "079550": {"name": "LIG넥스원", "current_price": 488500, "previous_close": 469000, "currency": "KRW", "timestamp": "2026-02-22T09:00:00Z"},
+    "207940": {"name": "삼성바이오로직스", "current_price": 1750000, "previous_close": 1737000, "currency": "KRW", "timestamp": "2026-02-22T09:00:00Z"},
+    "068270": {"name": "셀트리온", "current_price": 242000, "previous_close": 242500, "currency": "KRW", "timestamp": "2026-02-22T09:00:00Z"},
+    "042700": {"name": "한미반도체", "current_price": 87000, "previous_close": 86300, "currency": "KRW", "timestamp": "2026-02-22T09:00:00Z"},
+    "373220": {"name": "LG에너지솔루션", "current_price": 460000, "previous_close": 457500, "currency": "KRW", "timestamp": "2026-02-22T09:00:00Z"},
+    "096770": {"name": "SK이노베이션", "current_price": 148000, "previous_close": 147200, "currency": "KRW", "timestamp": "2026-02-22T09:00:00Z"},
+    "051910": {"name": "LG화학", "current_price": 388000, "previous_close": 385000, "currency": "KRW", "timestamp": "2026-02-22T09:00:00Z"},
+    "005380": {"name": "현대자동차", "current_price": 240000, "previous_close": 238100, "currency": "KRW", "timestamp": "2026-02-22T09:00:00Z"},
+    "000270": {"name": "기아", "current_price": 100500, "previous_close": 99400, "currency": "KRW", "timestamp": "2026-02-22T09:00:00Z"},
+    "012330": {"name": "현대모비스", "current_price": 271000, "previous_close": 268700, "currency": "KRW", "timestamp": "2026-02-22T09:00:00Z"},
+    "009830": {"name": "한화솔루션", "current_price": 43500, "previous_close": 42700, "currency": "KRW", "timestamp": "2026-02-22T09:00:00Z"},
+    "011170": {"name": "롯데케미칼", "current_price": 148500, "previous_close": 147100, "currency": "KRW", "timestamp": "2026-02-22T09:00:00Z"},
+    "009540": {"name": "한국조선해양", "current_price": 148500, "previous_close": 147200, "currency": "KRW", "timestamp": "2026-02-22T09:00:00Z"},
+    "010140": {"name": "삼성중공업", "current_price": 10050, "previous_close": 9940, "currency": "KRW", "timestamp": "2026-02-22T09:00:00Z"},
+    "042660": {"name": "한화오션", "current_price": 32000, "previous_close": 31500, "currency": "KRW", "timestamp": "2026-02-22T09:00:00Z"},
+    "326030": {"name": "SK바이오팜", "current_price": 94500, "previous_close": 93200, "currency": "KRW", "timestamp": "2026-02-22T09:00:00Z"}
+  },
+  "us_stocks": {
+    "LMT": {"name": "Lockheed Martin", "current_price": 658.26, "previous_close": 666.51, "currency": "USD", "timestamp": "2026-02-22T09:00:00Z"},
+    "JNJ": {"name": "Johnson & Johnson", "current_price": 242.49, "previous_close": 246.91, "currency": "USD", "timestamp": "2026-02-22T09:00:00Z"},
+    "RTX": {"name": "Raytheon Technologies", "current_price": 132.00, "previous_close": 130.15, "currency": "USD", "timestamp": "2026-02-22T09:00:00Z"},
+    "NVDA": {"name": "NVIDIA", "current_price": 890.00, "previous_close": 885.20, "currency": "USD", "timestamp": "2026-02-22T09:00:00Z"},
+    "AAPL": {"name": "Apple", "current_price": 188.50, "previous_close": 185.30, "currency": "USD", "timestamp": "2026-02-22T09:00:00Z"}
+  }
+}

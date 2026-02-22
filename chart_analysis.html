@@ -253,115 +253,74 @@
             document.getElementById('result').style.display = 'none';
 
             try {
-                // 실제 API 호출 (포트 8126으로 수정)
-                const response = await fetch(`http://127.0.0.1:8126/api/chart/${ticker}?key=ds-test-2026`);
+                // 실제 API 호출 - 상대 경로 사용 (CORS 문제 해결)
+                console.log(`📊 차트 분석: ${ticker} API 호출...`);
+                const apiUrl = `/api/chart/${ticker}`;
+                console.log(`API URL: ${apiUrl}`);
+                
+                const response = await fetch(apiUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                console.log(`Response status: ${response.status}`);
+                console.log(`Response headers:`, response.headers);
                 
                 if (!response.ok) {
-                    throw new Error('데이터를 가져올 수 없습니다.');
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 
-                const data = await response.json();
+                // 응답 텍스트 먼저 확인
+                const responseText = await response.text();
+                console.log(`📄 Raw Response Text:`, responseText);
+                
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (parseError) {
+                    console.error('❌ JSON 파싱 실패:', parseError.message);
+                    console.error('응답 내용:', responseText);
+                    throw parseError;
+                }
+                
+                console.log(`✅ API 성공: ${ticker} 데이터 받음`, data);
                 
                 // 차트 및 UI 업데이트
                 updateUI(data);
                 
             } catch (error) {
-                console.error('API Error:', error);
-                console.log('⚠️ 실제 API 연동 실패, Mock 데이터 사용');
+                console.error('❌ API Error:', error);
+                console.error('Error message:', error.message);
+                console.error('Error stack:', error.stack);
                 
-                // 폴백: 목업 데이터 사용
-                const mockData = generateMockData(ticker);
-                updateUI(mockData);
+                // 에러 상세 정보 출력
+                console.error(`상세 에러:
+- Ticker: ${ticker}
+- API URL: /api/chart/${ticker}
+- 에러 타입: ${error.constructor.name}
+- 에러 메시지: ${error.message}`);
+                
+                // Mock 데이터 사용하지 않음 - 에러 표시
+                document.getElementById('result').innerHTML = `
+                    <div style="padding: 20px; background: #fee; border: 1px solid #fcc; border-radius: 8px;">
+                        <h3 style="color: #c00; margin-top: 0;">❌ 데이터 로드 실패</h3>
+                        <p><strong>종목:</strong> ${ticker}</p>
+                        <p><strong>에러:</strong> ${error.message}</p>
+                        <p style="font-size: 13px; color: #666;">
+                            <strong>해결 방법:</strong><br>
+                            1. F12 개발자 도구 열기<br>
+                            2. Console 탭에서 에러 확인<br>
+                            3. Network 탭에서 /api/chart/${ticker} 응답 확인<br>
+                            4. 서버 상태: <a href="http://localhost:8000/api/price/${ticker}" target="_blank">API 테스트</a>
+                        </p>
+                    </div>
+                `;
+                document.getElementById('result').style.display = 'block';
             } finally {
                 document.getElementById('loading').style.display = 'none';
             }
-        }
-
-        function generateMockData(ticker) {
-            const dates = [];
-            const prices = [];
-            const ma5 = [];
-            const ma20 = [];
-            const ma60 = [];
-            
-            // 종목명 매핑
-            const stockNames = {
-                '005930': '삼성전자',
-                '012450': '한화에어로스페이스',
-                '207940': '삼성바이오로직스',
-                '068270': '셀트리온',
-                'JNJ': 'Johnson & Johnson',
-                'LMT': 'Lockheed Martin',
-                'NVDA': 'NVIDIA',
-                'AAPL': 'Apple Inc.',
-                '079550': 'LIG넥스원',
-                '000660': 'SK하이닉스',
-                '042700': '한미반도체'
-            };
-            
-            const stockName = stockNames[ticker] || ticker;
-            
-            // 미국 주식인지 확인 (알파벳 티커)
-            const isUS = ticker.length <= 5 && /^[A-Z]+$/.test(ticker);
-            
-            const basePrice = ticker === '005930' ? 75000 : 
-                            ticker === '012450' ? 185000 :
-                            ticker === '207940' ? 850000 :
-                            ticker === '068270' ? 175000 :
-                            ticker === 'JNJ' ? 215 :
-                            ticker === 'LMT' ? 445 :
-                            ticker === 'NVDA' ? 188 :
-                            ticker === 'AAPL' ? 264 :
-                            ticker === '079550' ? 544000 :
-                            ticker === '000660' ? 142000 :
-                            ticker === '042700' ? 95000 :
-                            isUS ? 150 :  // 기본 미국 주식 가격
-                            100000;        // 기본 한국 주식 가격
-            let currentPrice = basePrice;
-            
-            for (let i = 0; i < 120; i++) {
-                const date = new Date();
-                date.setDate(date.getDate() - (120 - i));
-                dates.push(date.toISOString().split('T')[0]);
-                
-                currentPrice += (Math.random() - 0.5) * (basePrice * 0.02);
-                prices.push(currentPrice);
-                
-                if (i >= 4) ma5.push(prices.slice(i-4, i+1).reduce((a,b) => a+b) / 5);
-                else ma5.push(null);
-                
-                if (i >= 19) ma20.push(prices.slice(i-19, i+1).reduce((a,b) => a+b) / 20);
-                else ma20.push(null);
-                
-                if (i >= 59) ma60.push(prices.slice(i-59, i+1).reduce((a,b) => a+b) / 60);
-                else ma60.push(null);
-            }
-            
-            const currentPriceValue = prices[prices.length - 1];
-            const prevPrice = prices[prices.length - 2];
-            const change = ((currentPriceValue - prevPrice) / prevPrice * 100);
-            
-            return {
-                ticker: ticker,
-                name: stockName,
-                dates: dates,
-                prices: prices,
-                ma5: ma5,
-                ma20: ma20,
-                ma60: ma60,
-                indicators: {
-                    current_price: currentPriceValue,
-                    rsi: 55 + Math.random() * 20,
-                    macd: Math.random() > 0.5 ? '매수' : '중립',
-                    short_trend: '상승',
-                    mid_trend: '상승',
-                    support: Math.min(...prices.slice(-20)),
-                    resistance: Math.max(...prices.slice(-20)),
-                    patterns: ['Bullish Engulfing', 'Hammer']
-                },
-                signal: 'BUY',
-                summary: `${stockName} Mock 차트 분석\n\n단기 추세: 상승\n중기 추세: 상승\nRSI: 중립권\nMACD: 매수 신호\n\n현재 상승 추세를 보이고 있으며, 기술적 지표상 매수 고려 가능`
-            };
         }
 
         function updateUI(data) {

@@ -14,7 +14,7 @@ alembic==1.12.1  # 마이그레이션 관리
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.1.1
-pyjwt==2.8.1
+pyjwt==2.11.0
 
 # Stock Data Collection
 python-dotenv==1.0.0
