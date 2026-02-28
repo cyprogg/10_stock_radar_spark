@@ -54,10 +54,13 @@ def get_db() -> Session:
 
 def init_db():
     """데이터베이스 초기화 (테이블 생성)"""
-    from models.user import Base
+    from models import Base, User, StockPrice  # 모든 모델 임포트
     
     Base.metadata.create_all(bind=engine)
     print("✅ 데이터베이스 초기화 완료")
+    print("   📊 테이블:")
+    print(f"      - users")
+    print(f"      - stock_prices")
 
 
 if __name__ == "__main__":

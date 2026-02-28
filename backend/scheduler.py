@@ -1,13 +1,15 @@
 """
 매일 오후 6시 주가 자동 업데이트 스케줄러
-NH투자증권 API 사용
+- 현재가: NH투자증권 API / KRX API / Yahoo Finance
+- 일봉 데이터: 키움 Open API (ka10081)
 """
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import os
 import sys
+import time
 
 # 상위 디렉토리의 services 모듈 import
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -16,6 +18,9 @@ from services.nh_investment_api import NHInvestmentAPI
 from services.nh_stock_api import NHStockAPI
 from services.krx_stock_api import KRXStockAPI
 from services.us_stock_service import USStockService
+from services.kiwoom_openapi import KiwoomOpenAPI
+from database import SessionLocal
+from models.stock import StockPrice
 
 # 모든 종목 리스트
 STOCK_LIST = {
@@ -51,11 +56,20 @@ STOCK_LIST = {
 # 서비스 인스턴스 (전역)
 kr_api = None
 us_service = None
+kiwoom_api = None  # 키움 Open API
 
 
 def init_services():
     """API 서비스 초기화"""
-    global kr_api, us_service
+    global kr_api, us_service, kiwoom_api
+    
+    # 일봉 데이터: 키움 Open API 우선
+    try:
+        kiwoom_api = KiwoomOpenAPI(is_mock=False)
+        print("✅ 키움 Open API 초기화 완료 (일봉 데이터)")
+    except Exception as e:
+        print(f"⚠️  키움 API 초기화 실패: {e}")
+        kiwoom_api = None
     
     # 한국 주식: NH투자증권 API 우선
     try:
@@ -83,6 +97,119 @@ def init_services():
     except Exception as e:
         print(f"⚠️  미국 주식 서비스 초기화 실패: {e}")
         us_service = None
+
+
+def update_daily_charts():
+    """
+    매일 일봉 데이터 갱신 (키움 Open API)
+    
+    어제의 종가 데이터를 조회하여 StockPrice 테이블에 저장
+    - 최초 설정: collect_historical_prices.py로 120일 초기 데이터 수집
+    - 매일 갱신: 이 함수로 전일 데이터 추가
+    """
+    print(f"\n{'='*70}")
+    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 일봉 데이터 갱신 시작")
+    print(f"{'='*70}\n")
+    
+    if not kiwoom_api:
+        print("⚠️  키움 API 사용 불가 (초기화 실패)")
+        return
+    
+    # 어제 날짜 (거래일 기준)
+    today = datetime.now()
+    yesterday = today - timedelta(days=1)
+    
+    # 주말이면 금요일 기준으로
+    while yesterday.weekday() > 4:  # 5=sat, 6=sun
+        yesterday -= timedelta(days=1)
+    
+    yesterday_str = yesterday.strftime('%Y%m%d')
+    
+    # 갱신할 종목 (KR 리스트에서 주석 해제된 것만)
+    tickers_to_update = [
+        ('012450', '한화에어로스페이스'),
+        ('079550', 'LIG넥스원'),
+        ('005930', '삼성전자'),
+        ('000660', 'SK하이닉스'),
+        ('207940', '삼성바이오로직스'),
+    ]
+    
+    db = SessionLocal()
+    success_count = 0
+    fail_count = 0
+    skip_count = 0
+    
+    try:
+        print(f"📅 기준일: {yesterday.strftime('%Y-%m-%d')} (YYYYMMDD: {yesterday_str})\n")
+        
+        for ticker, name in tickers_to_update:
+            try:
+                # 이미 DB에 있는지 확인
+                existing = db.query(StockPrice).filter(
+                    StockPrice.ticker == ticker,
+                    StockPrice.date == yesterday.strftime('%Y-%m-%d'),
+                    StockPrice.market == 'KR'
+                ).first()
+                
+                if existing:
+                    print(f"  ⏭️  {name:20s} [{ticker}]: 이미 저장됨")
+                    skip_count += 1
+                    continue
+                
+                # 키움 API로 조회 (어제 기준일로)
+                chart = kiwoom_api.get_daily_chart(ticker, end_date=yesterday_str)
+                
+                if not chart or len(chart) == 0:
+                    print(f"  ⚠️  {name:20s} [{ticker}]: 데이터 없음 (휴장일?)")
+                    fail_count += 1
+                    continue
+                
+                # 가장 최근 거래일 기준 데이터 저장
+                latest = chart[-1]  # 정렬되어 있으므로 마지막이 최신
+                if latest['date'] <= yesterday.strftime('%Y-%m-%d'):
+                    stock_price = StockPrice(
+                        ticker=ticker,
+                        market='KR',
+                        date=latest['date'],
+                        open=latest['open'],
+                        high=latest['high'],
+                        low=latest['low'],
+                        close=latest['close'],
+                        volume=latest['volume'],
+                        source='Kiwoom'
+                    )
+                    db.add(stock_price)
+                    print(f"  ✅ {name:20s} [{ticker}]: "
+                          f"종가 {latest['close']:>10,.0f}원 | "
+                          f"거래량 {latest['volume']:>10,}")
+                    success_count += 1
+                else:
+                    print(f"  ⚠️  {name:20s} [{ticker}]: 날짜 오류 (조회 실패)")
+                    fail_count += 1
+                
+                # Rate limit 방지
+                time.sleep(0.5)
+            
+            except Exception as e:
+                print(f"  ❌ {name:20s} [{ticker}]: 오류 - {str(e)[:30]}")
+                fail_count += 1
+        
+        # 커밋
+        db.commit()
+        
+        print(f"\n{'='*70}")
+        print(f"일봉 데이터 갱신 완료")
+        print(f"  ✅ 저장: {success_count}개")
+        print(f"  ⏭️  스킵: {skip_count}개 (기존 데이터)")
+        print(f"  ❌ 실패: {fail_count}개")
+        print(f"{'='*70}\n")
+    
+    except Exception as e:
+        db.rollback()
+        print(f"❌ 일괄 오류: {e}")
+    
+    finally:
+        db.close()
 
 
 def update_stock_prices():
@@ -176,7 +303,17 @@ def start_scheduler():
     
     scheduler = BackgroundScheduler()
     
-    # 매일 오후 6시 실행
+    # 1. 매일 오후 5시: 일봉 데이터 갱신 (키움 API)
+    scheduler.add_job(
+        update_daily_charts,
+        'cron',
+        hour=17,
+        minute=0,
+        id='daily_chart_update',
+        replace_existing=True
+    )
+    
+    # 2. 매일 오후 6시: 현재가 조회 및 JSON 갱신
     scheduler.add_job(
         update_stock_prices,
         'cron',
@@ -188,14 +325,19 @@ def start_scheduler():
     
     scheduler.start()
     
-    print(f"\n{'='*60}")
+    print(f"\n{'='*70}")
     print("🕐 스케줄러 시작됨")
-    print("⏰ 실행 시간: 매일 오후 6시 (18:00)")
-    print("📊 대상 종목:")
+    print("\n📅 실행 일정:")
+    print("   ┌─ 오후 5시 (17:00): 일봉 데이터 갱신 (키움 API)")
+    print("   │  - 저장 위치: StockPrice 테이블")
+    print("   │  - 대상: 한국 주식 (120일 누적)")
+    print("   │")
+    print("   └─ 오후 6시 (18:00): 현재가 조회 (NH/KRX/Yahoo)")
+    print("      - 저장 위치: stock_prices.json")
+    print(f"\n📊 대상 종목:")
     print(f"   - 미국 주식: {len(STOCK_LIST['US'])}개")
-    print(f"   - 한국 주식: {len(STOCK_LIST['KR'])}개")
-    print(f"   - 총 {len(STOCK_LIST['US']) + len(STOCK_LIST['KR'])}개 종목")
-    print(f"{'='*60}\n")
+    print(f"   - 한국 주식: {len(STOCK_LIST['KR'])}개 (주석 해제 시)")
+    print(f"{'='*70}\n")
     
     return scheduler
 

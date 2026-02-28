@@ -710,6 +710,36 @@
 
         async function loadStockPrices() {
             try {
+                console.log(`📊 주가 데이터 로드 시작...`);
+                
+                // 1️⃣ stock_prices.json에서 먼저 시도
+                console.log('📖 stock_prices.json에서 로드 시도...');
+                const response = await fetch('stock_prices.json');
+                if (response.ok) {
+                    const priceData = await response.json();
+                    if (priceData.stocks && Object.keys(priceData.stocks).length > 0) {
+                        console.log(`✅ stock_prices.json에서 ${Object.keys(priceData.stocks).length}개 종목 로드 완료`);
+                        
+                        // stock_prices.json의 데이터를 사용
+                        const stocks = {};
+                        Object.entries(priceData.stocks).forEach(([ticker, data]) => {
+                            stocks[ticker] = {
+                                price: data.price,
+                                currency: data.currency || (ticker.match(/^[A-Z]+$/) ? 'USD' : 'KRW'),
+                                source: 'stock_prices.json',
+                                date: data.date || new Date().toISOString().split('T')[0]
+                            };
+                        });
+                        
+                        cachedPrices = stocks;
+                        lastPriceUpdate = new Date();
+                        return;
+                    }
+                }
+                
+                console.warn('⚠️ stock_prices.json 로드 실패, API 호출로 대체...');
+                
+                // 2️⃣ 실패 시 API 호출
                 const allTickers = [];
                 
                 // 모든 티커 수집
@@ -719,7 +749,7 @@
                     });
                 }
                 
-                console.log(`💰 Fetching prices for ${allTickers.length} stocks...`);
+                console.log(`💰 API를 통해 ${allTickers.length}개 종목 주가 조회...`);
                 const startTime = Date.now();
                 
                 const stocks = {};
@@ -882,11 +912,17 @@
             // 기존 초기화
             loadSimulationHistory();
             setupEventListeners();
-            loadURLParameters(); // 🆕 URL 파라미터 자동 로드
+            await loadURLParameters(); // ✅ await 추가: 가격 로드를 기다린 후 폼 설정
         });
 
-        function loadURLParameters() {
+        async function loadURLParameters() {
             const urlParams = new URLSearchParams(window.location.search);
+            
+            // ✅ 수신된 모든 파라미터 로깅
+            console.log('🔍 수신 URL 파라미터:');
+            for (const [key, value] of urlParams) {
+                console.log(`  ${key}: ${value}`);
+            }
             
             // URL에 파라미터가 있는지 확인
             if (urlParams.has('ticker')) {
@@ -894,12 +930,41 @@
                 const sector = urlParams.get('sector') || '';
                 const ticker = urlParams.get('ticker') || '';
                 const name = urlParams.get('name') || '';
-                const price = parseFloat(urlParams.get('price')) || 0;
+                let price = parseFloat(urlParams.get('price')) || 0;
                 const risk = urlParams.get('risk') || 'middle';
                 const period = urlParams.get('period') || '중기';
                 const capital = urlParams.get('capital') || '50000000';
 
-                console.log('URL Parameters:', { market, sector, ticker, name, price, risk, period, capital });
+                console.log('━━━ URL 파라미터 파싱 완료:');
+                console.log(`  market: ${market}`);
+                console.log(`  ticker: ${ticker}`);
+                console.log(`  name: ${name}`);
+                console.log(`  price: ${price} (type: ${typeof price})`);
+                
+                // ✅ Price가 0이면 stock_prices.json에서 로드
+                if ((price === 0 || !price) && ticker) {
+                    console.log(`⏳ price가 없음(${price}) - stock_prices.json에서 로드 시도...`);
+                    try {
+                        const response = await fetch('stock_prices.json');
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.stocks && data.stocks[ticker]) {
+                                price = data.stocks[ticker].price;
+                                console.log(`✅ ${ticker} 현재 주가 로드됨: ₩${price}`);
+                            } else {
+                                console.warn(`⚠️ stock_prices.json에 ${ticker} 데이터 없음`);
+                            }
+                        } else {
+                            console.warn(`⚠️ stock_prices.json 응답 오류: ${response.status}`);
+                        }
+                    } catch (err) {
+                        console.warn(`⚠️ stock_prices.json 로드 실패:`, err);
+                    }
+                } else {
+                    console.log(`💰 price이미 있음: ₩${price}`);
+                }
+
+                console.log(`✅ 최종 price 값: ₩${price}`);
 
                 // Market 선택
                 if (market === 'US') {
@@ -957,10 +1022,12 @@
                     const stockInDB = STOCK_DATABASE[sector]?.find(s => s.ticker === ticker);
                     
                     if (stockInDB) {
-                        // DB에 있으면 선택 (업데이트된 가격 사용)
+                        // DB에 있으면 선택
                         stockSelect.value = ticker;
-                        document.getElementById('current-price').value = stockInDB.price;
-                        console.log(`✅ Loading ${ticker}: ${stockInDB.price}`);
+                        // ✅ DB의 price가 없으면 URL 파라미터의 price 사용
+                        const finalPrice = stockInDB.price || price;
+                        document.getElementById('current-price').value = finalPrice;
+                        console.log(`✅ Loading ${ticker}: ${finalPrice} (DB: ${stockInDB.price}, URL: ${price})`);
                     } else if (name && ticker && price) {
                         // DB에 없으면 수동으로 옵션 추가하고 실시간 가격 로드
                         const option = document.createElement('option');

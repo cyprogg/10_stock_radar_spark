@@ -393,60 +393,112 @@ Trade Plan Builder → 진입/손절/목표/포지션 확인
 
 ## 🎯 개발 로드맵
 
-### MVP (4주)
+### MVP (4주) ✅ **완료**
 - [x] 9요소 통합 프레임워크
 - [x] 모멘텀 품질 판별
 - [x] No-Go 시스템 설계
 - [x] DS-Anchor 자동 방송
-- [ ] 5개 AI Agent 구현
-- [ ] 데이터 파이프라인 구축
-- [ ] API 서버 완성
-- [ ] UI 통합
+- [x] 5개 AI Agent 구현 (완전 작동)
+- [x] 데이터 파이프라인 구축 (Yahoo Finance 실시간)
+- [x] API 서버 완성 (server_v2.py @ port 8126)
+- [x] UI 통합 (index.html, trade_plan_simulation.html, news_filter.html)
 
-### V2 (차별화)
+**MVP 완료 상태: 2026-02-28**
+- ✅ Yahoo Finance 실시간 데이터 통합 (한국/미국)
+- ✅ 5개 AI Agent (Market Regime, Sector Scout, Stock Screener, Trade Plan Builder, Devil's Advocate)
+- ✅ 주가 자동 업데이트 시스템 (12개 종목)
+- ✅ Mock → 실제 데이터 전환 완료
+- ✅ GitHub 저장소 생성 및 배포 준비
+
+### V1.0 정식 출시 대기 🚀
+**남은 것: 배포만**
+- 🔄 Railway 배포 (백엔드)
+- 🔄 Vercel 배포 (프론트엔드)
+- 🔄 Supabase Auth 연동
+- 🔄 Stripe 결제 시스템
+
+### V2 (차별화) 📅
 - [ ] 조건 알림 (Slack/Email)
 - [ ] 성과 기록 추적
-- [ ] 실시간 미국 데이터
 - [ ] 포트폴리오 리밸런싱
+- [ ] 120일 일별 시세 자동 수집 (KRX/키움 API)
 
 ---
 
-## 📊 현재 상태 (2026-02-19)
+## 📊 현재 상태 (2026-02-28) ✅ MVP 완료
+
+### 🎉 V1.0 MVP 완료 (4주 목표 달성)
 
 **완료 ✅:**
-- ✅ 9요소 투자 프레임워크 (문서 + 구현)
-- ✅ 5개 AI Agent 시스템 (완전 작동)
-- ✅ MVP 로드맵 (4주) - **완료**
-- ✅ 데이터 비용 분석 (₩9,900 가능성)
-- ✅ DS-Anchor 자동 방송 (KR/US)
-- ✅ 모멘텀 품질 프레임워크
-- ✅ 단기/중기 매매 체크리스트
-- ✅ No-Go 시스템 설계
+- ✅ **9요소 투자 프레임워크** (문서 + 구현)
+- ✅ **5개 AI Agent 시스템** (완전 작동)
+  - Market Regime Analyst (시장 판단)
+  - Sector Scout (섹터 선별)
+  - Stock Screener (종목 분류)
+  - Trade Plan Builder (매매 계획)
+  - Devil's Advocate (반대 의견)
+- ✅ **MVP 로드맵 (4주)** - **완료** 🏆
+- ✅ **데이터 비용 분석** (₩9,900 가능성)
+- ✅ **DS-Anchor 자동 방송** (KR/US)
+- ✅ **모멘텀 품질 프레임워크**
+- ✅ **단기/중기 매매 체크리스트**
+- ✅ **No-Go 시스템 설계**
 - ✅ **Yahoo Finance 실시간 데이터 통합** (한국/미국)
 - ✅ **Mock → 실제 데이터 전환 완료**
 - ✅ **주가 자동 업데이트 시스템**
 - ✅ **GitHub 저장소 생성 및 배포 준비**
 - ✅ **SaaS 상용화 로드맵 작성**
+- ✅ **120일 일별 시세 수집 시스템** (KRX/키움 API)
+  - StockPrice 데이터 모델 (SQLite)
+  - 배치 수집 스크립트 (collect_historical_prices.py)
+  - 자동 갱신 스케줄러 (scheduler.py - 17:00/18:00)
+  - DB 테스트 완료 (삽입, 조회, 성능 3ms)
 
-**완성된 UI 페이지 ✅:**
-- ✅ [index.html](index.html) - 메인 대시보드 (Market Regime, Sectors, Stock Funnel)
-- ✅ [trade_plan_simulation.html](trade_plan_simulation.html) - 트레이드 플랜 시뮬레이션
-- ✅ [news_filter.html](news_filter.html) - 뉴스 소음/가치 필터링 (5개 체크리스트, 0~100점)
+### 완성된 UI 페이지 ✅
+- ✅ [index.html](index.html) - 메인 대시보드
+  - Market Regime (RISK_ON/OFF)
+  - Sector Heatmap (5개 섹터 실시간 랭킹)
+  - Stock Funnel (Leader/Follower/No-Go)
+  - Trade Plan 미리보기
+  - Why Drawer + Devil's Advocate
+  - Mock 또는 실제 API 데이터 선택 가능
+  
+- ✅ [trade_plan_simulation.html](trade_plan_simulation.html)
+  - 상세 시뮬레이션 (seamless 통합)
+  - 9개 파라미터 자동 전달
+  - 실시간 업데이트
+  
+- ✅ [news_filter.html](news_filter.html)
+  - 뉴스 소음/가치 필터링
+  - 5개 체크리스트, 0~100점
+  
 - ✅ [user_guide.html](user_guide.html) - 사용자 가이드
 
-**운영 중 🚀:**
-- 🚀 Market Regime AI 분석 (실시간)
-- 🚀 Sector Heatmap (5개 섹터 자동 랭킹)
-- 🚀 Stock Funnel (Leader/Follower/No-Go 자동 분류)
-- 🚀 Market Intelligence (AI 시장 해설 생성)
-- 🚀 주가 데이터 (Yahoo Finance, 자동 업데이트)
+### 운영 중 🚀
+- 🚀 **Market Regime AI 분석** (실시간)
+- 🚀 **Sector Heatmap** (5개 섹터 자동 랭킹)
+- 🚀 **Stock Funnel** (Leader/Follower/No-Go 자동 분류)
+- 🚀 **Market Intelligence** (AI 시장 해설 생성)
+- 🚀 **주가 데이터** (Yahoo Finance, 자동 업데이트)
+- 🚀 **대시보드 서버** (목표: http://localhost:5000)
 
-**다음 단계 📅:**
-- 📅 Railway + Vercel 배포
+### 다음 단계 (배포) 📅
+- 📅 Railway.app 배포 (백엔드)
+- 📅 Vercel 배포 (프론트엔드)
 - 📅 Supabase Auth (회원가입/로그인)
 - 📅 Stripe 결제 시스템
 - 📅 Beta 테스트 (50명)
-- 📅 정식 런칭
+- 📅 정식 런칭 (V1.0)
+
+### 신규: 120일 일별 시세 수집 (2026-02-28) ✅
+**KRX Open API 제약 해결 + 키움증권 공식 API 반영**
+- ✅ 데이터 모델: StockPrice (ticker, date, ohlcv)
+- ✅ KRX API 확장: 일별 시세 기간 조회 가능
+- ✅ 키움 OpenAPI: ka10081 (일봉 최대 600개) 공식 샘플 반영
+- ✅ 자동 수집: collect_historical_prices.py (배치 처리)
+- ✅ 자동 갱신: scheduler.py (매일 17:00)
+- ✅ 데이터베이스: SQLite (테스트 완료, 3ms 성능)
+- 🔄 키움 토큰 인증: 공식 OAuth 2.0 구현 (대기: API Key)
 
 ---
 

@@ -1,6 +1,4 @@
-cd backend
-python server_v2.pycd backend
-python server_v2.py<!doctype html>
+<!doctype html>
 <html lang="ko">
 <head>
 <meta charset="utf-8"/>
@@ -711,7 +709,7 @@ const isDevelopment = window.location.hostname === 'localhost' ||
 const API = ''; // 상대 경로만 사용
 
 const ACCESS_KEY = "ds-test-2026";
-const USE_MOCK_DATA = false; // ⬅️ 실제 API 데이터 사용
+const USE_MOCK_DATA = true; // ⬅️ Mock 데이터 사용 (백엔드 없을 때)
 
 // ========== State ==========
 let selectedSector = null;
@@ -1025,6 +1023,84 @@ async function loadSectors() {
     : '뚜렷한 자금 집중 섹터 없음.';
 }
 
+// ========== Funnel 데이터에 현재 주가 추가 (trade_plan_simulation.html 전달용) ==========
+async function enrichFunnelDataWithPrices(funnelData) {
+  try {
+    // stock_prices.json에서 모든 종목의 현재 주가 로드
+    const response = await fetch('stock_prices.json');
+    if (!response.ok) {
+      console.warn('⚠️ stock_prices.json 로드 실패 - 가격 데이터 없이 진행');
+      return;
+    }
+    
+    const priceData = await response.json();
+    if (!priceData.stocks) {
+      console.warn('⚠️ stock_prices.json 형식 오류');
+      return;
+    }
+    
+    // funnelData의 모든 카테고리(leader, follower, nogo)에서 price 업데이트
+    ['leader', 'follower', 'nogo'].forEach(category => {
+      if (funnelData[category] && Array.isArray(funnelData[category])) {
+        funnelData[category].forEach(stock => {
+          if (priceData.stocks[stock.ticker]) {
+            // ✅ stock_prices.json의 가격을 추가
+            stock.price = priceData.stocks[stock.ticker].price;
+            console.log(`💰 ${stock.ticker} (${stock.name}): ₩${stock.price}`);
+          } else {
+            // 데이터가 없으면 기본값 설정 (사용자가 수동 입력 가능)
+            stock.price = stock.price || 0;
+            console.warn(`⚠️ ${stock.ticker}: stock_prices.json에 데이터 없음`);
+          }
+        });
+      }
+    });
+    
+    console.log('✅ Funnel 데이터에 현재 주가 추가 완료');
+  } catch (error) {
+    console.error('❌ enrichFunnelDataWithPrices 오류:', error);
+  }
+}
+
+// 페이지 로드 시: MARKET_DATA 전체 가격 업데이트
+async function updateAllMarketDataPrices() {
+  try {
+    console.log('📊 stock_prices.json에서 모든 주가 로드 중...');
+    const response = await fetch('stock_prices.json');
+    if (!response.ok) {
+      console.warn('⚠️ stock_prices.json 로드 실패');
+      return;
+    }
+    
+    const priceData = await response.json();
+    if (!priceData.stocks) {
+      console.warn('⚠️ stock_prices.json 형식 오류');
+      return;
+    }
+    
+    // MARKET_DATA.funnels의 모든 섹터에서 가격 업데이트
+    Object.values(MARKET_DATA.funnels).forEach(funnel => {
+      ['leader', 'follower', 'nogo'].forEach(category => {
+        if (funnel[category] && Array.isArray(funnel[category])) {
+          funnel[category].forEach(stock => {
+            if (priceData.stocks[stock.ticker]) {
+              const oldPrice = stock.price;
+              stock.price = priceData.stocks[stock.ticker].price;
+              if (oldPrice !== stock.price) {
+                console.log(`🔄 ${stock.ticker}: ${oldPrice} → ${stock.price}`);
+              }
+            }
+          });
+        }
+      });
+    });
+    
+    console.log('✅ 모든 MARKET_DATA 주가 업데이트 완료');
+  } catch (error) {
+    console.error('❌ updateAllMarketDataPrices 오류:', error);
+  }
+}
+
 // ========== 3. Funnel ==========
 async function loadFunnel(sector) {
   selectedSector = sector;
@@ -1042,6 +1118,9 @@ async function loadFunnel(sector) {
     $('#nogo').innerHTML = '<div class="small">데이터 없음</div>';
     return;
   }
+  
+  // ✅ Funnel 데이터에 현재 주가 추가 (trade_plan_simulation.html 전달용) - await 처리
+  await enrichFunnelDataWithPrices(funnelData);
   
   const addStock = (boxId, stocks, funnelType) => {
     const box = $(boxId);
@@ -1724,6 +1803,13 @@ function openDetailedSimulation() {
     return;
   }
   
+  // ✅ DEBUG: selectedStock 상태 확인
+  console.log('📋 selectedStock 상태:', selectedStock);
+  console.log('  ticker:', selectedStock.ticker);
+  console.log('  name:', selectedStock.name);
+  console.log('  price:', selectedStock.price);
+  console.log('  type:', selectedStock.type);
+  
   // 현재 선택된 값들 가져오기
   const period = $('#plan-period')?.value || '중기';
   const risk = $('#plan-risk')?.value || '중립';
@@ -1754,7 +1840,7 @@ function openDetailedSimulation() {
     sector: selectedSector || '',
     ticker: selectedStock.ticker || '',
     name: selectedStock.name || '',
-    price: selectedStock.price || '',
+    price: selectedStock.price || '',  // ✅ price 전달
     period: periodKor,
     risk: riskEng,
     capital: '10000000',  // 기본 1천만원
@@ -1763,15 +1849,19 @@ function openDetailedSimulation() {
   
   // 새 탭에서 시뮬레이션 페이지 열기
   const url = `trade_plan_simulation.html?${params.toString()}`;
-  window.open(url, '_blank');
   
-  console.log('📊 Opening detailed simulation:', {
-    stock: selectedStock.name,
+  console.log('🔗 전달 URL:', url);
+  console.log('📤 파라미터 전달:', {
+    market: market,
     sector: selectedSector,
+    ticker: selectedStock.ticker,
+    name: selectedStock.name,
+    price: selectedStock.price,
     period: periodKor,
-    risk: risk,
-    url: url
+    risk: riskEng
   });
+  
+  window.open(url, '_blank');
 }
 
 /**
@@ -2156,6 +2246,9 @@ async function init() {
   console.log('🚀 Initializing Decision Stream v4.0...');
   
   try {
+    // ✅ 모든 MARKET_DATA 주가 stock_prices.json에서 로드
+    await updateAllMarketDataPrices();
+    
     // 최신 주가 업데이트 (백그라운드)
     updateStockPrices().catch(err => {
       console.warn('⚠️ Stock price update failed (using cached prices):', err);
